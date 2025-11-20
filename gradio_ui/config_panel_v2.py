@@ -1,4 +1,4 @@
-"""Panel de configuración mejorado con sub-pestañas para prompts."""
+"""Panel de configuración mejorado con pestañas para Chatbot y Producto/Servicio."""
 
 import gradio as gr
 from services.config_manager import get_config_manager
@@ -8,7 +8,7 @@ logger = get_logger(__name__)
 
 
 class ConfigPanelComponentV2:
-    """Componente de configuración con sub-pestañas."""
+    """Componente de configuración con pestañas para Chatbot y Producto."""
 
     def __init__(self, db_session_factory):
         """
@@ -38,11 +38,13 @@ class ConfigPanelComponentV2:
 
             # Mapear args a config keys
             config_keys = [
+                # Chatbot config
                 "system_prompt", "payment_link", "response_delay_minutes",
                 "text_audio_ratio", "use_emojis", "tts_voice", "rag_enabled",
                 "multi_part_messages", "max_words_per_response",
-                "welcome_prompt", "intent_prompt", "sentiment_prompt",
-                "data_extraction_prompt", "closing_prompt"
+                # Producto/Servicio config
+                "product_name", "product_description", "product_features",
+                "product_benefits", "product_price", "product_target_audience"
             ]
 
             configs = dict(zip(config_keys, args))
@@ -58,27 +60,31 @@ class ConfigPanelComponentV2:
             return f"❌ Error: {str(e)}"
 
     def create_component(self):
-        """Crear componente UI con sub-pestañas."""
+        """Crear componente UI con pestañas para Chatbot y Producto."""
 
         with gr.Column() as col:
-            gr.Markdown("## ⚙️ Configuración del Bot")
-            gr.Markdown("*Los valores se cargarán de la base de datos al abrir cada campo*")
+            gr.Markdown("## ⚙️ Configuración")
+            gr.Markdown("*Configura tu chatbot y describe tu producto/servicio*")
 
             with gr.Tabs():
-                # Tab 1: Configuración General
-                with gr.Tab("General"):
-                    gr.Markdown("### Configuración General")
+                # Tab 1: Configuración del Chatbot
+                with gr.Tab("🤖 Chatbot"):
+                    gr.Markdown("### Configuración del Chatbot")
 
                     system_prompt = gr.Textbox(
                         label="System Prompt",
-                        placeholder="Eres un asistente de ventas...",
+                        placeholder="Eres un asistente de ventas profesional...",
                         lines=4,
+                        info="Personalidad y comportamiento base del chatbot"
                     )
 
                     payment_link = gr.Textbox(
                         label="Link de Pago",
-                        placeholder="https://example.com/pay",
+                        placeholder="https://tu-sitio.com/pagar",
+                        info="URL donde los clientes pueden realizar el pago"
                     )
+
+                    gr.Markdown("#### Comportamiento")
 
                     with gr.Row():
                         response_delay = gr.Number(
@@ -86,7 +92,8 @@ class ConfigPanelComponentV2:
                             value=0.5,
                             minimum=0,
                             maximum=10,
-                            step=0.1
+                            step=0.1,
+                            info="Tiempo de espera antes de responder"
                         )
 
                         max_words = gr.Slider(
@@ -94,28 +101,30 @@ class ConfigPanelComponentV2:
                             minimum=20,
                             maximum=300,
                             step=10,
-                            value=100
+                            value=100,
+                            info="Límite de palabras en cada mensaje"
                         )
 
                     with gr.Row():
                         use_emojis = gr.Checkbox(
                             label="Usar Emojis",
-                            value=True
+                            value=True,
+                            info="Incluir emojis en las respuestas"
                         )
 
                         multi_part = gr.Checkbox(
                             label="Mensajes en Múltiples Partes",
-                            value=False
+                            value=False,
+                            info="Dividir respuestas largas"
                         )
 
                         rag_enabled = gr.Checkbox(
                             label="Habilitar RAG",
-                            value=False
+                            value=False,
+                            info="Usar base de conocimientos"
                         )
 
-                # Tab 2: Audio/TTS
-                with gr.Tab("Audio/TTS"):
-                    gr.Markdown("### Configuración de Audio")
+                    gr.Markdown("#### Audio/TTS")
 
                     text_audio_ratio = gr.Slider(
                         label="Ratio Texto/Audio (%)",
@@ -129,37 +138,54 @@ class ConfigPanelComponentV2:
                     tts_voice = gr.Dropdown(
                         label="Voz TTS",
                         choices=["alloy", "echo", "fable", "onyx", "nova", "shimmer"],
-                        value="nova"
+                        value="nova",
+                        info="Voz para mensajes de audio"
                     )
 
-                # Tab 3: Prompts Editables
-                with gr.Tab("Prompts"):
-                    gr.Markdown("### Editar Prompts del Sistema")
+                # Tab 2: Producto/Servicio
+                with gr.Tab("📦 Producto/Servicio"):
+                    gr.Markdown("### Información de tu Producto/Servicio")
+                    gr.Markdown("*Esta información se usará para adaptar las respuestas del chatbot*")
 
-                    welcome_prompt = gr.Textbox(
-                        label="Prompt de Bienvenida",
-                        lines=3,
+                    product_name = gr.Textbox(
+                        label="Nombre del Producto/Servicio",
+                        placeholder="Ej: Curso de Marketing Digital",
+                        info="¿Qué vendes?"
                     )
 
-                    intent_prompt = gr.Textbox(
-                        label="Prompt de Clasificación de Intent",
-                        lines=3,
+                    product_description = gr.Textbox(
+                        label="Descripción",
+                        placeholder="Curso completo de marketing digital con más de 50 horas de contenido...",
+                        lines=4,
+                        info="Descripción general de lo que ofreces"
                     )
 
-                    sentiment_prompt = gr.Textbox(
-                        label="Prompt de Análisis de Sentimiento",
-                        lines=2,
+                    product_features = gr.Textbox(
+                        label="Características Principales",
+                        placeholder="- 50+ horas de video\n- Certificado al finalizar\n- Acceso de por vida\n- Soporte 24/7",
+                        lines=5,
+                        info="Lista las características clave (una por línea)"
                     )
 
-                    data_extraction_prompt = gr.Textbox(
-                        label="Prompt de Extracción de Datos",
-                        lines=3,
+                    product_benefits = gr.Textbox(
+                        label="Beneficios para el Cliente",
+                        placeholder="- Aprenderás a crear campañas efectivas\n- Aumentarás tus ventas online\n- Dominarás las redes sociales",
+                        lines=5,
+                        info="¿Qué gana el cliente? (una por línea)"
                     )
 
-                    closing_prompt = gr.Textbox(
-                        label="Prompt de Cierre",
-                        lines=3,
-                    )
+                    with gr.Row():
+                        product_price = gr.Textbox(
+                            label="Precio",
+                            placeholder="Ej: $99 USD, Desde $50, Consultar",
+                            info="Precio o rango de precio (opcional)"
+                        )
+
+                        product_target_audience = gr.Textbox(
+                            label="Público Objetivo",
+                            placeholder="Ej: Emprendedores, Pequeños negocios",
+                            info="¿A quién está dirigido?"
+                        )
 
             # Botón de guardar
             save_btn = gr.Button("💾 Guardar Configuración", variant="primary", size="lg")
@@ -169,11 +195,13 @@ class ConfigPanelComponentV2:
             save_btn.click(
                 self.save_all_configs,
                 inputs=[
+                    # Chatbot config
                     system_prompt, payment_link, response_delay,
                     text_audio_ratio, use_emojis, tts_voice, rag_enabled,
                     multi_part, max_words,
-                    welcome_prompt, intent_prompt, sentiment_prompt,
-                    data_extraction_prompt, closing_prompt
+                    # Product config
+                    product_name, product_description, product_features,
+                    product_benefits, product_price, product_target_audience
                 ],
                 outputs=status_msg
             )

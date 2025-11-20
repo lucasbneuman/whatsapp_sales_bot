@@ -140,52 +140,67 @@ with gr.Blocks(title="WhatsApp Sales Bot", theme=gr.themes.Soft()) as demo:
         # 3. Pruebas Tab - Testing local
         with gr.Tab("🧪 Pruebas"):
             with gr.Row():
-                # Columna izquierda: Datos del usuario simulado (MEJORADA)
+                # Columna izquierda: Datos del usuario simulado (COMPACTA)
                 with gr.Column(scale=1):
                     gr.Markdown("## 👤 Datos Recolectados")
 
-                    # Display bonito con emojis
+                    # Display compacto con formato de una línea
                     with gr.Group():
                         user_name_display = gr.Textbox(
-                            label="📝 Nombre",
-                            value="",
+                            label="",
+                            value="📝 Nombre: Aún no mencionó su nombre",
                             interactive=False,
-                            placeholder="Vacío"
+                            show_label=False,
+                            container=False
                         )
                         user_email_display = gr.Textbox(
-                            label="📧 Email",
-                            value="",
+                            label="",
+                            value="📧 Email: No proporcionado",
                             interactive=False,
-                            placeholder="Vacío"
+                            show_label=False,
+                            container=False
                         )
                         user_phone_display = gr.Textbox(
-                            label="📱 Teléfono",
-                            value="+1234567890",
-                            interactive=False
+                            label="",
+                            value="📱 Teléfono: +1234567890",
+                            interactive=False,
+                            show_label=False,
+                            container=False
+                        )
+                        last_contact_display = gr.Textbox(
+                            label="",
+                            value="🕐 Último contacto: -",
+                            interactive=False,
+                            show_label=False,
+                            container=False
                         )
                         intent_display = gr.Textbox(
-                            label="🎯 Intención",
-                            value="",
+                            label="",
+                            value="🎯 Intención: -",
                             interactive=False,
-                            placeholder="Vacío"
+                            show_label=False,
+                            container=False
                         )
                         sentiment_display = gr.Textbox(
-                            label="😊 Sentimiento",
-                            value="",
+                            label="",
+                            value="😊 Sentimiento: -",
                             interactive=False,
-                            placeholder="Vacío"
+                            show_label=False,
+                            container=False
                         )
                         stage_display = gr.Textbox(
-                            label="📊 Etapa",
-                            value="",
+                            label="",
+                            value="📊 Etapa: -",
                             interactive=False,
-                            placeholder="Vacío"
+                            show_label=False,
+                            container=False
                         )
                         needs_display = gr.Textbox(
-                            label="💡 Necesidades",
-                            value="",
+                            label="",
+                            value="💡 Necesidades: -",
                             interactive=False,
-                            placeholder="Vacío",
+                            show_label=False,
+                            container=False,
                             lines=2
                         )
 
@@ -210,18 +225,23 @@ with gr.Blocks(title="WhatsApp Sales Bot", theme=gr.themes.Soft()) as demo:
                     clear = gr.Button("Limpiar Chat", size="sm")
 
             # Función para actualizar datos del usuario
-            async def process_chat_with_data(message: str, history: list, current_name, current_email, current_intent, current_sentiment, current_stage, current_needs) -> tuple:
+            async def process_chat_with_data(message: str, history: list, current_name, current_email, current_last_contact, current_intent, current_sentiment, current_stage, current_needs) -> tuple:
                 """Procesar chat y actualizar datos del usuario."""
+                from datetime import datetime
+
                 # Procesar mensaje normalmente
                 new_history, empty_str = await process_chat(message, history)
 
-                # Extraer datos del estado del último mensaje
-                name = current_name
-                email = current_email
-                intent = current_intent
-                sentiment = current_sentiment
-                stage = current_stage
-                needs = current_needs
+                # Extraer valores actuales (removiendo el formato)
+                name = current_name.split(": ", 1)[1] if ": " in current_name else ""
+                email = current_email.split(": ", 1)[1] if ": " in current_email else ""
+                intent = current_intent.split(": ", 1)[1] if ": " in current_intent else ""
+                sentiment = current_sentiment.split(": ", 1)[1] if ": " in current_sentiment else ""
+                stage = current_stage.split(": ", 1)[1] if ": " in current_stage else ""
+                needs = current_needs.split(": ", 1)[1] if ": " in current_needs else ""
+
+                # Actualizar último contacto
+                last_contact = datetime.now().strftime("%d/%m/%Y %H:%M")
 
                 # Detectar intent básico
                 message_lower = message.lower()
@@ -250,7 +270,7 @@ with gr.Blocks(title="WhatsApp Sales Bot", theme=gr.themes.Soft()) as demo:
                     for i, word in enumerate(words):
                         if word.lower() in ["llamo", "soy"] and i + 1 < len(words):
                             potential_name = words[i + 1].strip(",.!?")
-                            if potential_name[0].isupper():
+                            if potential_name and potential_name[0].isupper():
                                 name = potential_name
 
                 # Detectar email
@@ -274,23 +294,32 @@ with gr.Blocks(title="WhatsApp Sales Bot", theme=gr.themes.Soft()) as demo:
                 if any(word in message_lower for word in ["necesito", "quiero", "busco", "me interesa"]):
                     needs = message
 
-                return new_history, "", name, email, intent, sentiment, stage, needs
+                # Formatear valores para display compacto
+                name_display = f"📝 Nombre: {name if name and name not in ['Aún no mencionó su nombre', '-'] else 'Aún no mencionó su nombre'}"
+                email_display = f"📧 Email: {email if email and email not in ['No proporcionado', '-'] else 'No proporcionado'}"
+                last_contact_display = f"🕐 Último contacto: {last_contact}"
+                intent_display = f"🎯 Intención: {intent if intent and intent != '-' else '-'}"
+                sentiment_display = f"😊 Sentimiento: {sentiment if sentiment and sentiment != '-' else '-'}"
+                stage_display = f"📊 Etapa: {stage if stage and stage != '-' else '-'}"
+                needs_display = f"💡 Necesidades: {needs if needs and needs != '-' else '-'}"
+
+                return new_history, "", name_display, email_display, last_contact_display, intent_display, sentiment_display, stage_display, needs_display
 
             # Connect events
             msg.submit(
                 process_chat_with_data,
-                [msg, chatbot, user_name_display, user_email_display, intent_display, sentiment_display, stage_display, needs_display],
-                [chatbot, msg, user_name_display, user_email_display, intent_display, sentiment_display, stage_display, needs_display]
+                [msg, chatbot, user_name_display, user_email_display, last_contact_display, intent_display, sentiment_display, stage_display, needs_display],
+                [chatbot, msg, user_name_display, user_email_display, last_contact_display, intent_display, sentiment_display, stage_display, needs_display]
             )
             send.click(
                 process_chat_with_data,
-                [msg, chatbot, user_name_display, user_email_display, intent_display, sentiment_display, stage_display, needs_display],
-                [chatbot, msg, user_name_display, user_email_display, intent_display, sentiment_display, stage_display, needs_display]
+                [msg, chatbot, user_name_display, user_email_display, last_contact_display, intent_display, sentiment_display, stage_display, needs_display],
+                [chatbot, msg, user_name_display, user_email_display, last_contact_display, intent_display, sentiment_display, stage_display, needs_display]
             )
             clear.click(
-                lambda: ([], "", "", "", "", "", "", ""),
+                lambda: ([], "📝 Nombre: Aún no mencionó su nombre", "📧 Email: No proporcionado", "🕐 Último contacto: -", "🎯 Intención: -", "😊 Sentimiento: -", "📊 Etapa: -", "💡 Necesidades: -"),
                 None,
-                [chatbot, user_name_display, user_email_display, intent_display, sentiment_display, stage_display, needs_display]
+                [chatbot, user_name_display, user_email_display, last_contact_display, intent_display, sentiment_display, stage_display, needs_display]
             )
 
     gr.Markdown("""

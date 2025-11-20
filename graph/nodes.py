@@ -15,6 +15,64 @@ logger = get_logger(__name__)
 
 
 # ============================================================================
+# HELPER FUNCTIONS
+# ============================================================================
+
+
+def build_enhanced_system_prompt(config: Dict[str, Any]) -> str:
+    """
+    Build an enhanced system prompt that includes product/service information.
+
+    Args:
+        config: Configuration dictionary with system_prompt and product info
+
+    Returns:
+        Enhanced system prompt string
+    """
+    base_prompt = config.get("system_prompt", "You are a friendly sales assistant.")
+
+    # Get product information
+    product_name = config.get("product_name", "").strip()
+    product_description = config.get("product_description", "").strip()
+    product_features = config.get("product_features", "").strip()
+    product_benefits = config.get("product_benefits", "").strip()
+    product_price = config.get("product_price", "").strip()
+    product_target = config.get("product_target_audience", "").strip()
+
+    # If no product info is available, return base prompt
+    if not product_name and not product_description:
+        return base_prompt
+
+    # Build enhanced prompt with product context
+    enhanced_prompt = f"{base_prompt}\n\n"
+    enhanced_prompt += "=== INFORMACIÓN DEL PRODUCTO/SERVICIO ===\n"
+
+    if product_name:
+        enhanced_prompt += f"Producto/Servicio: {product_name}\n"
+
+    if product_description:
+        enhanced_prompt += f"\nDescripción:\n{product_description}\n"
+
+    if product_features:
+        enhanced_prompt += f"\nCaracterísticas principales:\n{product_features}\n"
+
+    if product_benefits:
+        enhanced_prompt += f"\nBeneficios para el cliente:\n{product_benefits}\n"
+
+    if product_price:
+        enhanced_prompt += f"\nPrecio: {product_price}\n"
+
+    if product_target:
+        enhanced_prompt += f"\nPúblico objetivo: {product_target}\n"
+
+    enhanced_prompt += "\n=== INSTRUCCIONES ===\n"
+    enhanced_prompt += "Usa esta información para responder preguntas sobre el producto/servicio de manera natural y conversacional. "
+    enhanced_prompt += "NO menciones que tienes esta información directamente, simplemente úsala para dar respuestas precisas y útiles."
+
+    return enhanced_prompt
+
+
+# ============================================================================
 # NODE 1: WELCOME
 # ============================================================================
 
@@ -24,6 +82,7 @@ async def welcome_node(state: ConversationState) -> Dict[str, Any]:
     Generate warm welcome message for new conversations.
 
     Uses GPT-4o for high-quality, personalized greeting.
+    Includes product/service information if available.
     """
     logger.info("Executing welcome_node")
 
@@ -32,13 +91,13 @@ async def welcome_node(state: ConversationState) -> Dict[str, Any]:
     # Check if this is first message
     user_messages = [m for m in state["messages"] if isinstance(m, HumanMessage)]
     if len(user_messages) <= 1:
-        # Generate welcome message
-        system_prompt = state["config"].get("system_prompt", "Eres un asistente de ventas amigable.")
-        welcome_prompt = f"{system_prompt}\n\nGenera un mensaje de bienvenida cálido y breve (máximo 2-3 oraciones) para un nuevo cliente que se comunica por WhatsApp."
+        # Generate welcome message with product context
+        enhanced_prompt = build_enhanced_system_prompt(state["config"])
+        welcome_prompt = f"{enhanced_prompt}\n\nGenera un mensaje de bienvenida cálido y breve (máximo 2-3 oraciones) para un nuevo cliente que se comunica por WhatsApp."
 
         response = await llm_service.generate_response(
             messages=[HumanMessage(content=welcome_prompt)],
-            system_prompt=system_prompt,
+            system_prompt=enhanced_prompt,
             use_emojis=state["config"].get("use_emojis", True),
         )
 
@@ -263,14 +322,15 @@ async def conversation_node(state: ConversationState) -> Dict[str, Any]:
 
     Uses GPT-4o + RAG if enabled.
     Applies all configurations (emojis, tone, system prompt).
+    Includes product/service context automatically.
     """
     logger.info("Executing conversation_node")
 
     llm_service = get_llm_service()
     rag_service = get_rag_service()
 
-    # Get configuration
-    system_prompt = state["config"].get("system_prompt", "You are a friendly sales assistant.")
+    # Get configuration with enhanced product context
+    enhanced_prompt = build_enhanced_system_prompt(state["config"])
     use_emojis = state["config"].get("use_emojis", True)
     rag_enabled = state["config"].get("rag_enabled", False)
 
@@ -288,10 +348,10 @@ async def conversation_node(state: ConversationState) -> Dict[str, Any]:
         except Exception as e:
             logger.error(f"RAG retrieval error: {e}")
 
-    # Generate response
+    # Generate response with product-aware prompt
     response = await llm_service.generate_response(
         messages=state["messages"],
-        system_prompt=system_prompt,
+        system_prompt=enhanced_prompt,
         use_emojis=use_emojis,
         rag_context=rag_context,
     )
@@ -347,15 +407,20 @@ async def payment_node(state: ConversationState) -> Dict[str, Any]:
     Send payment link to customer.
 
     Marks payment_link_sent and schedules follow-up.
+    Uses product context for personalized closing message.
     """
     logger.info("Executing payment_node")
 
     llm_service = get_llm_service()
     payment_link = state["config"].get("payment_link", "https://example.com/pay")
 
+    # Build product context for closing message
+    product_name = state["config"].get("product_name", "nuestro producto")
+
     # Generate closing message with payment link
     user_data = {
         "name": state.get("user_name", "there"),
+        "product_name": product_name,
     }
 
     response = await llm_service.generate_closing_message(user_data, payment_link)
