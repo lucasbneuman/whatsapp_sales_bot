@@ -1,94 +1,146 @@
-# Cambios Realizados - Resumen
+# Cambios Realizados - WhatsApp Sales Bot
 
-## ✅ Completados
+## 📋 Estado Actual del Proyecto
 
-### 1. Configuración - Delay en Minutos
-- ✅ Cambiado `response_delay` (segundos) a `response_delay_minutes` en `config_manager.py`
-- ✅ Valor por defecto: 0.5 minutos
+### ✅ Sistema Base (Completado)
+- ✅ Gradio UI v2 con 3 pestañas principales (Chats, Configuración, Pruebas)
+- ✅ LangGraph workflow completo con nodos de conversación
+- ✅ Integración con OpenAI (GPT-4o y GPT-4o-mini)
+- ✅ Sistema de configuración con base de datos SQLite
+- ✅ RAG con ChromaDB para documentos
+- ✅ TTS con OpenAI
+- ✅ Sistema de prompts adaptables a producto/servicio
 
-### 2. Nuevas Opciones de Configuración
-- ✅ `multi_part_messages`: Enviar mensajes en múltiples partes (como persona real)
-- ✅ `max_words_per_response`: Límite de palabras por respuesta (default: 100)
+### ✅ Configuración Mejorada (Completado)
+- ✅ Reorganización en 2 pestañas:
+  - 🤖 Chatbot: Configuración del comportamiento
+  - 📦 Producto/Servicio: Información del producto
+  - 📚 Base de Conocimientos: Carga de documentos (TXT, PDF, DOC, DOCX)
+- ✅ Prompts se adaptan automáticamente según producto configurado
+- ✅ System prompt enriquecido con contexto de producto
 
-### 3. Prompts Editables
-- ✅ Agregados todos los prompts al DEFAULT_CONFIG:
-  - `welcome_prompt`
-  - `intent_prompt`
-  - `sentiment_prompt`
-  - `data_extraction_prompt`
-  - `closing_prompt`
+### ✅ Datos Recolectados Compactos (Completado)
+- ✅ Formato compacto: `📝 Nombre: Valor` en una sola línea
+- ✅ Campo "Último contacto" agregado
+- ✅ Campos: Nombre, Email, Teléfono, Último contacto, Intención, Sentimiento, Etapa, Necesidades
 
-### 4. Panel de Configuración con Sub-pestañas
-- ✅ Creado `config_panel_v2.py` con 3 tabs:
-  - **General**: System prompt, payment link, delay, max palabras, emojis, multi-part
-  - **Audio/TTS**: Ratio texto/audio, voz TTS
-  - **Prompts**: Todos los prompts editables
+### ✅ Sistema RAG (Completado)
+- ✅ Carga múltiple de archivos (TXT, PDF, DOC, DOCX)
+- ✅ Estadísticas de fragmentos indexados
+- ✅ Opción para limpiar base de conocimientos
+- ✅ Integración con ChromaDB
 
-###5. Nodo de Resumen
-- ✅ Creado `summary_node` en `nodes.py`
-- ✅ Genera resumen AI de toda la conversación
-- ✅ Sincroniza con HubSpot
-- ✅ Agregado campo `conversation_summary` en:
-  - `models.py` (tabla User)
-  - `state.py` (ConversationState)
+---
 
-## 🔧 Pendiente
+## 🔧 Tareas en Progreso - Sprint Actual
 
-### 1. Actualizar `gradio_app.py`
-- [ ] Reemplazar `ConfigPanelComponent` por `ConfigPanelComponentV2`
-- [ ] Mejorar visualización de datos en Pruebas:
-  - Mostrar con emojis y formato bonito (no JSON)
-  - Iniciar vacío para ver cómo se recolecta data
-- [ ] Quitar sección "Información" de Pruebas (modo, teléfono, modelos, BD)
+### 1. Configuración - Ajustes
+- [ ] Cambiar rango "Máximo de Palabras por Respuesta" a 5-200
+- [ ] Eliminar checkbox "Habilitar RAG" (siempre activo si hay archivos)
+- [ ] Agregar campo "Mensaje de Bienvenida" personalizado en configuración
 
-### 2. Implementar Multi-part Messages
-- [ ] Actualizar `llm_service.py` para dividir respuestas largas
-- [ ] Enviar en múltiples mensajes con delay entre ellos
+### 2. Comportamiento del Chatbot - Core
+- [ ] Corregir uso de emojis (no se están usando actualmente)
+- [ ] Implementar división de mensajes en partes:
+  - Si respuesta ≥20 palabras y multi_part activo
+  - Dividir en 3 partes máximo: intro + respuesta + pregunta final
+- [ ] Implementar flujo de bienvenida:
+  - Primero enviar mensaje de bienvenida
+  - Hacer preguntas iniciales: nombre, necesidades, expectativas
 
-### 3. Implementar Límite de Palabras
-- [ ] Actualizar `llm_service.py` para respetar `max_words_per_response`
-- [ ] Agregar al system prompt del LLM
+### 3. Datos Recolectados - Mejoras
+- [ ] Agregar "ID de Usuario" único
+- [ ] Hacer el teléfono editable (actualmente fijo en +1234567890)
+- [ ] Agregar campo "Notas": resumen después de calificar/avanzar/enviar link
+- [ ] Agregar flag "Solicita Humano":
+  - Detectar cuando usuario pide hablar con persona
+  - Responder: "Si claro, dame unos minutos que aviso a mi supervisor, mientras tanto te gustaría saber más sobre..."
+  - Marcar en datos recolectados
 
-### 4. Integrar Summary Node en Workflow
-- [ ] Actualizar `workflow.py` para llamar a `summary_node`
-- [ ] Determinar cuándo ejecutarlo (al terminar conversación, en follow-up #2, etc.)
+### 4. Testing y Validación
+- [ ] Probar todos los cambios de configuración
+- [ ] Validar división de mensajes con diferentes longitudes
+- [ ] Probar detección de solicitud de humano
+- [ ] Verificar que emojis funcionen correctamente
+- [ ] Probar actualización de datos recolectados
 
-### 5. Revisar Envío de Audios
-- [ ] Investigar por qué no se envían audios
-- [ ] Verificar `tts_service.py` y `twilio_service.py`
-- [ ] Probar con `text_audio_ratio` > 0
+---
 
-### 6. Limpiar Código
-- [ ] Eliminar archivos no utilizados:
-  - `test_*.py` files en raíz
-  - `app_fixed.py`
-  - `gradio_ui/chat_component.py` (viejo)
-  - `gradio_ui/interface.py` (no usado)
-- [ ] Eliminar imports no utilizados
-- [ ] Limpiar comentarios viejos
+## 📝 Notas Técnicas
 
-### 7. Pruebas Finales
-- [ ] Probar flujo completo de conversación
-- [ ] Verificar que se guarden resúmenes
-- [ ] Verificar sincronización con HubSpot
-- [ ] Probar todas las opciones de configuración
+### Comportamiento de Multi-part Messages
+- **Condición**: Respuesta ≥20 palabras Y multi_part_messages=true
+- **División**: 3 partes máximo
+  1. Intro/saludo
+  2. Contenido principal
+  3. Pregunta de cierre
+- **Ubicación**: `services/llm_service.py` método `generate_response()`
 
-## 📝 Notas Importantes
+### RAG - Siempre Activo
+- Eliminar checkbox de UI
+- Lógica: Si `rag_service.get_collection_stats()['total_chunks'] > 0` → usar RAG
+- Ubicación: `graph/nodes.py` método `conversation_node()`
 
-1. **Base de Datos**: Se agregó campo `conversation_summary` a tabla User. Si ya tienes una BD existente, necesitarás migración o recrearla.
+### Emojis
+- Verificar flag `use_emojis` se pasa correctamente
+- Ubicación: `services/llm_service.py` y `graph/nodes.py`
 
-2. **Config Manager**: Los nuevos campos se agregarán automáticamente con valores por defecto al iniciar la app.
+### ID de Usuario
+- Generar UUID único en `gradio_app_v2.py`
+- Mantener durante toda la sesión de prueba
+- Formato: `user_XXXXXXXX`
 
-3. **HubSpot**: El nodo de resumen intentará sincronizar pero no fallará si HubSpot no está configurado.
+---
 
-4. **Delay**: Ahora es en MINUTOS, no segundos. Valores típicos: 0.5-2 minutos.
+## 🚀 Próximos Pasos (Post-Sprint)
 
-## 🚀 Próximos Pasos
+1. **Integración con WhatsApp Real**
+   - Conectar Twilio webhook
+   - Probar flujo completo con números reales
 
-1. Terminar actualización de `gradio_app.py`
-2. Implementar funcionalidad de multi-part messages
-3. Implementar límite de palabras
-4. Integrar summary node en workflow
-5. Revisar audios
-6. Limpiar código
-7. Pruebas completas
+2. **Sincronización CRM**
+   - HubSpot sync para contactos
+   - Enviar "Notas" al CRM
+   - Sync de flag "Solicita Humano"
+
+3. **Analytics y Métricas**
+   - Dashboard de conversaciones
+   - Métricas de conversión
+   - Análisis de sentimiento agregado
+
+4. **Optimizaciones**
+   - Mejorar velocidad de respuesta
+   - Reducir tokens de OpenAI
+   - Cache de embeddings
+
+---
+
+## 📌 Decisiones de Diseño
+
+### ¿Por qué eliminar checkbox RAG?
+- Simplifica UX: menos opciones para configurar
+- Comportamiento intuitivo: si subes documentos, se usan automáticamente
+- Evita confusión: usuario no necesita "activar" nada
+
+### ¿Por qué 3 partes para mensajes?
+- Simula conversación humana más natural
+- No satura al usuario con texto largo
+- Mantiene engagement con preguntas intermedias
+
+### ¿Por qué campo "Notas"?
+- Preparación para CRM sync
+- Contexto para handoff humano
+- Auditoría de conversaciones
+
+---
+
+## 🐛 Bugs Conocidos
+
+1. **Emojis no se usan**: Flag no se está aplicando correctamente
+2. **Teléfono fijo**: No se puede cambiar en datos recolectados
+3. **Multi-part no funciona**: Implementación pendiente
+
+---
+
+**Última actualización**: 2025-11-20
+**Versión actual**: v2.1-dev

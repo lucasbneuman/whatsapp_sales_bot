@@ -15,14 +15,21 @@ class ConfigManager:
 
     DEFAULT_CONFIG = {
         "system_prompt": "Eres un asistente de ventas amigable y profesional. Tu objetivo es ayudar a los clientes a encontrar el producto adecuado y completar su compra sin problemas.",
+        "welcome_message": "¡Hola! 👋 Soy tu asistente virtual. ¿En qué puedo ayudarte hoy?",
         "payment_link": "https://example.com/pay",
         "response_delay_minutes": 0.5,  # Delay en minutos
         "text_audio_ratio": 0,
         "use_emojis": True,
         "tts_voice": "nova",
-        "rag_enabled": False,
         "multi_part_messages": False,  # Enviar mensajes en múltiples partes
         "max_words_per_response": 100,  # Límite de palabras por respuesta
+        # Producto/Servicio
+        "product_name": "",
+        "product_description": "",
+        "product_features": "",
+        "product_benefits": "",
+        "product_price": "",
+        "product_target_audience": "",
         # Prompts editables
         "welcome_prompt": "Genera un mensaje de bienvenida cálido y breve (máximo 2-3 oraciones) para un nuevo cliente que se comunica por WhatsApp.",
         "intent_prompt": "Analiza el siguiente mensaje de un cliente potencial y clasifica su intención.",

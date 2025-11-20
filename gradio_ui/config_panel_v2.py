@@ -43,8 +43,8 @@ class ConfigPanelComponentV2:
             # Mapear args a config keys
             config_keys = [
                 # Chatbot config
-                "system_prompt", "payment_link", "response_delay_minutes",
-                "text_audio_ratio", "use_emojis", "tts_voice", "rag_enabled",
+                "system_prompt", "welcome_message", "payment_link", "response_delay_minutes",
+                "text_audio_ratio", "use_emojis", "tts_voice",
                 "multi_part_messages", "max_words_per_response",
                 # Producto/Servicio config
                 "product_name", "product_description", "product_features",
@@ -136,6 +136,13 @@ class ConfigPanelComponentV2:
                         info="Personalidad y comportamiento base del chatbot"
                     )
 
+                    welcome_message = gr.Textbox(
+                        label="Mensaje de Bienvenida",
+                        placeholder="¡Hola! Soy tu asistente virtual. ¿En qué puedo ayudarte hoy?",
+                        lines=2,
+                        info="Primer mensaje que verá el usuario al iniciar la conversación"
+                    )
+
                     payment_link = gr.Textbox(
                         label="Link de Pago",
                         placeholder="https://tu-sitio.com/pagar",
@@ -156,9 +163,9 @@ class ConfigPanelComponentV2:
 
                         max_words = gr.Slider(
                             label="Máximo de Palabras por Respuesta",
-                            minimum=20,
-                            maximum=300,
-                            step=10,
+                            minimum=5,
+                            maximum=200,
+                            step=5,
                             value=100,
                             info="Límite de palabras en cada mensaje"
                         )
@@ -174,12 +181,6 @@ class ConfigPanelComponentV2:
                             label="Mensajes en Múltiples Partes",
                             value=False,
                             info="Dividir respuestas largas"
-                        )
-
-                        rag_enabled = gr.Checkbox(
-                            label="Habilitar RAG",
-                            value=False,
-                            info="Usar base de conocimientos"
                         )
 
                     gr.Markdown("#### Audio/TTS")
@@ -330,8 +331,8 @@ class ConfigPanelComponentV2:
                 self.save_all_configs,
                 inputs=[
                     # Chatbot config
-                    system_prompt, payment_link, response_delay,
-                    text_audio_ratio, use_emojis, tts_voice, rag_enabled,
+                    system_prompt, welcome_message, payment_link, response_delay,
+                    text_audio_ratio, use_emojis, tts_voice,
                     multi_part, max_words,
                     # Product config
                     product_name, product_description, product_features,
