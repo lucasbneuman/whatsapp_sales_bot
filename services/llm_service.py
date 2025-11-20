@@ -399,6 +399,73 @@ Generate ONLY the message text."""
             logger.error(f"Follow-up message generation error: {e}")
             return f"Hi {name}! Just checking in to see if you had any questions. I'm here to help!"
 
+    async def generate_conversation_notes(self, user_data: Dict[str, Any], conversation_history: List[BaseMessage]) -> str:
+        """
+        Generate intelligent conversation notes using GPT-4o-mini.
+
+        Args:
+            user_data: Collected user data (name, email, phone, needs, etc.)
+            conversation_history: Full conversation history
+
+        Returns:
+            Concise summary of the conversation with key insights
+        """
+        llm = self.get_llm_for_task("analysis")
+
+        # Build conversation text
+        conversation_text = []
+        for msg in conversation_history:
+            if isinstance(msg, HumanMessage):
+                conversation_text.append(f"Cliente: {msg.content}")
+            elif isinstance(msg, (BaseMessage,)):
+                from langchain_core.messages import AIMessage
+                if isinstance(msg, AIMessage):
+                    conversation_text.append(f"Bot: {msg.content}")
+
+        full_conversation = "\n".join(conversation_text[-10:])  # Last 10 messages max
+
+        # Extract user data
+        name = user_data.get("name", "Sin nombre")
+        email = user_data.get("email", "")
+        phone = user_data.get("phone", "")
+        needs = user_data.get("needs", "")
+        intent = user_data.get("intent", "")
+        sentiment = user_data.get("sentiment", "")
+        stage = user_data.get("stage", "")
+        requests_human = user_data.get("requests_human", False)
+
+        prompt = f"""Genera un resumen conciso y profesional de esta conversación de ventas.
+
+DATOS DEL CLIENTE:
+- Nombre: {name}
+- Email: {email if email else "No proporcionado"}
+- Teléfono: {phone if phone else "No proporcionado"}
+- Necesidades: {needs if needs else "No especificadas"}
+- Intención: {intent}
+- Sentimiento: {sentiment}
+- Etapa: {stage}
+- Solicita humano: {"Sí" if requests_human else "No"}
+
+ÚLTIMOS MENSAJES:
+{full_conversation}
+
+Genera UN SOLO PÁRRAFO (máximo 3-4 oraciones) que resuma:
+1. Quién es el cliente y qué busca
+2. Nivel de interés/compromiso
+3. Próximos pasos recomendados
+
+Formato: Texto plano, sin bullets, sin emojis, estilo profesional."""
+
+        try:
+            messages = [HumanMessage(content=prompt)]
+            response = await llm.ainvoke(messages)
+            logger.info("Conversation notes generated with LLM")
+            return response.content.strip()
+        except Exception as e:
+            logger.error(f"Notes generation error: {e}")
+            # Fallback to basic format
+            return f"Cliente: {name} | Email: {email} | Tel: {phone} | Interés: {needs} | Etapa: {stage} | Intención: {intent} | Sentimiento: {sentiment}"
+
 
 # Global instance (will be initialized in app.py)
 llm_service: Optional[LLMService] = None

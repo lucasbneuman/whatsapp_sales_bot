@@ -134,9 +134,42 @@
 
 ---
 
-## 🔧 Sprint Actual - Correcciones Post-Testing
+## 🔧 Sprint Actual - Mejoras Post-Testing Round 2
 
-### Bugs Detectados en Pruebas
+### Bugs Detectados en Pruebas (Round 2)
+
+1. **Audio no funciona con ratio 100% en UI de Pruebas**
+   - ❌ Configurado text_audio_ratio al 100% pero solo responde con texto
+   - ℹ️ NOTA: Limitación de Gradio Chatbot - no soporta audio en mensajes
+   - ✅ Audio TTS funciona correctamente en WhatsApp real (Twilio)
+   - 📋 Para testing: Implementar componente Audio separado (futuro)
+
+2. **Preview de voces TTS**
+   - ❌ No se puede escuchar la voz antes de elegir
+   - ✅ Agregar botón de preview para cada voz en configuración
+
+3. **Notas de baja calidad**
+   - ❌ Formato simple, concatenación de strings
+   - ✅ Usar GPT-4 mini para generar resumen inteligente en hitos importantes
+
+4. **Recolección de datos podría mejorar**
+   - ❌ Ya usa GPT-4 mini pero podría ser más preciso
+   - ✅ Mejorar prompt de extracción de datos
+
+5. **Mensajes multiparte no se separan en UI**
+   - ❌ Backend divide correctamente pero Gradio los muestra juntos
+   - ❌ [PAUSA] aún visible en algunos casos
+   - ✅ Revisar lógica de proceso_chat_with_data
+
+6. **Rango máximo de palabras limitado**
+   - ❌ Actualmente 5-200
+   - ✅ Cambiar a 5-500
+
+---
+
+## 🔧 Sprint Anterior - Correcciones Post-Testing
+
+### Bugs Detectados en Pruebas (Round 1)
 
 1. **Bot no hace preguntas iniciales**
    - ❌ Solo responde, no pregunta nombre, necesidades, expectativas

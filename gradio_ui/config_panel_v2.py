@@ -106,6 +106,31 @@ class ConfigPanelComponentV2:
             logger.error(f"Error getting RAG stats: {e}")
             return "📊 Fragmentos en base de datos: 0"
 
+    async def preview_voice(self, voice_name: str):
+        """Preview TTS voice."""
+        try:
+            from services.tts_service import get_tts_service
+            tts_service = get_tts_service()
+
+            # Sample text for preview
+            preview_text = "Hola, soy tu asistente virtual. Esta es una muestra de mi voz."
+
+            # Generate audio
+            audio_bytes = await tts_service.generate_audio(preview_text, voice=voice_name)
+
+            # Save temporarily
+            import tempfile
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp:
+                tmp.write(audio_bytes)
+                tmp_path = tmp.name
+
+            logger.info(f"Generated voice preview for {voice_name}")
+            return tmp_path
+
+        except Exception as e:
+            logger.error(f"Error generating voice preview: {e}")
+            return None
+
     async def clear_rag_collection(self):
         """Limpiar todos los documentos del RAG."""
         try:
@@ -164,7 +189,7 @@ class ConfigPanelComponentV2:
                         max_words = gr.Slider(
                             label="Máximo de Palabras por Respuesta",
                             minimum=5,
-                            maximum=200,
+                            maximum=500,
                             step=5,
                             value=100,
                             info="Límite de palabras en cada mensaje"
@@ -200,6 +225,18 @@ class ConfigPanelComponentV2:
                         value="nova",
                         info="Voz para mensajes de audio"
                     )
+
+                    gr.Markdown("**Vista previa de voces:**")
+                    with gr.Row():
+                        alloy_btn = gr.Button("🔊 Alloy", size="sm")
+                        echo_btn = gr.Button("🔊 Echo", size="sm")
+                        fable_btn = gr.Button("🔊 Fable", size="sm")
+                    with gr.Row():
+                        onyx_btn = gr.Button("🔊 Onyx", size="sm")
+                        nova_btn = gr.Button("🔊 Nova", size="sm")
+                        shimmer_btn = gr.Button("🔊 Shimmer", size="sm")
+
+                    voice_preview_audio = gr.Audio(label="Preview", visible=False, autoplay=True)
 
                 # Tab 2: Producto/Servicio
                 with gr.Tab("📦 Producto/Servicio"):
@@ -339,6 +376,26 @@ class ConfigPanelComponentV2:
                     product_benefits, product_price, product_target_audience
                 ],
                 outputs=status_msg
+            )
+
+            # Conectar eventos de preview de voces
+            alloy_btn.click(lambda: self.preview_voice("alloy"), outputs=voice_preview_audio).then(
+                lambda: gr.update(visible=True), outputs=voice_preview_audio
+            )
+            echo_btn.click(lambda: self.preview_voice("echo"), outputs=voice_preview_audio).then(
+                lambda: gr.update(visible=True), outputs=voice_preview_audio
+            )
+            fable_btn.click(lambda: self.preview_voice("fable"), outputs=voice_preview_audio).then(
+                lambda: gr.update(visible=True), outputs=voice_preview_audio
+            )
+            onyx_btn.click(lambda: self.preview_voice("onyx"), outputs=voice_preview_audio).then(
+                lambda: gr.update(visible=True), outputs=voice_preview_audio
+            )
+            nova_btn.click(lambda: self.preview_voice("nova"), outputs=voice_preview_audio).then(
+                lambda: gr.update(visible=True), outputs=voice_preview_audio
+            )
+            shimmer_btn.click(lambda: self.preview_voice("shimmer"), outputs=voice_preview_audio).then(
+                lambda: gr.update(visible=True), outputs=voice_preview_audio
             )
 
         return col

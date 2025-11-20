@@ -259,15 +259,21 @@ with gr.Blocks(title="WhatsApp Sales Bot", theme=gr.themes.Soft()) as demo:
                 # Manejar mensajes multiparte con [PAUSA]
                 if new_history and len(new_history) > 0:
                     last_bot_message = new_history[-1]
-                    if last_bot_message.get("role") == "assistant" and "[PAUSA]" in last_bot_message.get("content", ""):
-                        # Dividir por [PAUSA] y crear mensajes separados
-                        bot_response = last_bot_message["content"]
-                        parts = [p.strip() for p in bot_response.split("[PAUSA]") if p.strip()]
+                    bot_content = last_bot_message.get("content", "")
 
-                        # Remover el último mensaje y agregar partes separadas
-                        new_history = new_history[:-1]
-                        for part in parts:
-                            new_history.append({"role": "assistant", "content": part})
+                    # Buscar [PAUSA] con cualquier variación de espacios/saltos de línea
+                    if last_bot_message.get("role") == "assistant" and "[PAUSA]" in bot_content:
+                        # Dividir por el patrón de [PAUSA] con espacios/saltos
+                        import re
+                        # Reemplazar variaciones de [PAUSA] con un separador único
+                        bot_response = re.sub(r'\s*\[PAUSA\]\s*', '|||SPLIT|||', bot_content)
+                        parts = [p.strip() for p in bot_response.split('|||SPLIT|||') if p.strip()]
+
+                        # Si hay múltiples partes, remover el último mensaje y agregar partes separadas
+                        if len(parts) > 1:
+                            new_history = new_history[:-1]
+                            for part in parts:
+                                new_history.append({"role": "assistant", "content": part})
 
                 # Extraer valores actuales (removiendo el formato)
                 user_id = current_user_id.split(": ", 1)[1] if ": " in current_user_id else ""
@@ -382,44 +388,41 @@ with gr.Blocks(title="WhatsApp Sales Bot", theme=gr.themes.Soft()) as demo:
                 if any(word in message_lower for word in ["necesito", "quiero", "busco", "me interesa"]):
                     needs = message
 
-                # Generar notas en puntos clave (más completas)
+                # Generar notas en puntos clave usando GPT-4 mini
                 if stage == "Cierre 💰" or requests_human == "Sí" or len(new_history) >= 10:
-                    notes_parts = []
+                    try:
+                        # Usar LLM para generar notas inteligentes
+                        from services.llm_service import get_llm_service
+                        llm_service = get_llm_service()
 
-                    # Información del cliente
-                    if name and name != "Aún no mencionó su nombre":
-                        notes_parts.append(f"Cliente: {name}")
-                    else:
-                        notes_parts.append("Cliente: No proporcionó nombre")
+                        # Preparar datos del usuario
+                        user_data = {
+                            "name": name if name and name != "Aún no mencionó su nombre" else "",
+                            "email": email if email and email != "No proporcionado" else "",
+                            "phone": phone if phone != "+1234567890" else "",
+                            "needs": needs if needs != "-" else "",
+                            "intent": intent,
+                            "sentiment": sentiment,
+                            "stage": stage,
+                            "requests_human": requests_human == "Sí"
+                        }
 
-                    # Datos de contacto
-                    contact_info = []
-                    if email and email != "No proporcionado":
-                        contact_info.append(f"Email: {email}")
-                    if phone and phone != "+1234567890":
-                        contact_info.append(f"Tel: {phone}")
-                    if contact_info:
-                        notes_parts.append(", ".join(contact_info))
+                        # Convertir historial a formato de mensajes
+                        from langchain_core.messages import HumanMessage, AIMessage
+                        conversation_history = []
+                        for msg in history:
+                            if msg.get("role") == "user":
+                                conversation_history.append(HumanMessage(content=msg.get("content", "")))
+                            elif msg.get("role") == "assistant":
+                                conversation_history.append(AIMessage(content=msg.get("content", "")))
 
-                    # Necesidades e interés
-                    if needs and needs != "-":
-                        notes_parts.append(f"Interés: {needs}")
+                        # Generar notas con LLM
+                        notes = await llm_service.generate_conversation_notes(user_data, conversation_history)
 
-                    # Etapa y intención
-                    notes_parts.append(f"Etapa: {stage}, Intención: {intent}")
-
-                    # Sentimiento
-                    notes_parts.append(f"Sentimiento: {sentiment}")
-
-                    # Solicitud de humano
-                    if requests_human == "Sí":
-                        notes_parts.append("⚠️ SOLICITA ATENCIÓN HUMANA")
-
-                    # Estado
-                    if stage == "Cierre 💰":
-                        notes_parts.append("✅ LISTO PARA COMPRA")
-
-                    notes = " | ".join(notes_parts)
+                    except Exception as e:
+                        # Fallback a formato simple si hay error
+                        print(f"Error generating notes with LLM: {e}")
+                        notes = f"Cliente: {name} | Email: {email} | Tel: {phone} | Etapa: {stage} | Intención: {intent}"
 
                 # Formatear valores para display compacto
                 user_id_display = f"🆔 ID: {user_id}"
