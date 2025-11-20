@@ -287,8 +287,9 @@ with gr.Blocks(title="WhatsApp Sales Bot", theme=gr.themes.Soft()) as demo:
                 requests_human = current_requests_human.split(": ", 1)[1] if ": " in current_requests_human else "No"
                 notes = current_notes.split(": ", 1)[1] if ": " in current_notes else ""
 
-                # Generar user_id si no existe
-                if not user_id or user_id.startswith("user_") or user_id == "USR_00" or user_id == "USRPRUEBAS_00":
+                # Generar user_id si no existe o está en formato por defecto
+                # Fix 1: Validación mejorada de User ID
+                if not user_id or user_id in ["user_12345678", "USR_00", "USRPRUEBAS_00", "USRPRUEBAS_", "USR_"] or user_id.startswith("user_"):
                     # Detectar entorno (PRD vs testing)
                     environment = os.getenv("ENVIRONMENT", "testing").lower()
 
@@ -300,6 +301,9 @@ with gr.Blocks(title="WhatsApp Sales Bot", theme=gr.themes.Soft()) as demo:
                         user_id = f"USR_{unique_num}"
                     else:
                         user_id = f"USRPRUEBAS_{unique_num}"
+
+                    # Fix 3: Logging mejorado
+                    print(f"✅ User ID generado: {user_id} (Entorno: {environment})")
 
                 # Actualizar último contacto
                 last_contact = datetime.now().strftime("%d/%m/%Y %H:%M")
@@ -328,6 +332,8 @@ with gr.Blocks(title="WhatsApp Sales Bot", theme=gr.themes.Soft()) as demo:
                 # Detectar solicitud de humano
                 if any(word in message_lower for word in ["humano", "persona", "supervisor", "agente", "operador", "hablar con alguien", "hablar con un"]):
                     requests_human = "Sí"
+                    # Fix 3: Logging mejorado
+                    print(f"🚨 Flag 'Solicita Humano' activado para User ID: {user_id}")
 
                 # Detectar nombre (mejorado)
                 import re
@@ -407,21 +413,36 @@ with gr.Blocks(title="WhatsApp Sales Bot", theme=gr.themes.Soft()) as demo:
                             "requests_human": requests_human == "Sí"
                         }
 
-                        # Convertir historial a formato de mensajes
+                        # Fix 2: Manejo de errores mejorado en conversión de historial
                         from langchain_core.messages import HumanMessage, AIMessage
                         conversation_history = []
-                        for msg in history:
-                            if msg.get("role") == "user":
-                                conversation_history.append(HumanMessage(content=msg.get("content", "")))
-                            elif msg.get("role") == "assistant":
-                                conversation_history.append(AIMessage(content=msg.get("content", "")))
+                        try:
+                            for msg in history:
+                                # Validar que msg es dict y tiene las keys necesarias
+                                if not isinstance(msg, dict):
+                                    print(f"⚠️ Mensaje no es dict, saltando: {type(msg)}")
+                                    continue
+
+                                role = msg.get("role")
+                                content = msg.get("content", "")
+
+                                if role == "user" and content:
+                                    conversation_history.append(HumanMessage(content=content))
+                                elif role == "assistant" and content:
+                                    conversation_history.append(AIMessage(content=content))
+                        except Exception as conv_error:
+                            print(f"⚠️ Error convirtiendo historial para notas: {conv_error}")
+                            # Continuar con el historial parcial que se haya construido
 
                         # Generar notas con LLM
                         notes = await llm_service.generate_conversation_notes(user_data, conversation_history)
 
+                        # Fix 3: Logging mejorado
+                        print(f"📝 Notas generadas con LLM para User ID: {user_id} (Trigger: etapa={stage}, solicita_humano={requests_human}, msgs={len(new_history)})")
+
                     except Exception as e:
                         # Fallback a formato simple si hay error
-                        print(f"Error generating notes with LLM: {e}")
+                        print(f"❌ Error generating notes with LLM: {e}")
                         notes = f"Cliente: {name} | Email: {email} | Tel: {phone} | Etapa: {stage} | Intención: {intent}"
 
                 # Formatear valores para display compacto
