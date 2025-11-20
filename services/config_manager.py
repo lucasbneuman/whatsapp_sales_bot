@@ -14,7 +14,7 @@ class ConfigManager:
     """Manager for application configuration."""
 
     DEFAULT_CONFIG = {
-        "system_prompt": "Eres un asistente de ventas amigable y profesional. Tu objetivo es ayudar a los clientes a encontrar el producto adecuado y completar su compra sin problemas.",
+        "system_prompt": "Eres un asistente de ventas amigable y profesional. Tu objetivo es ayudar a los clientes a encontrar el producto adecuado y completar su compra sin problemas.\n\nIMPORTANTE: Tú SÍ recolectas información del cliente (nombre, email, teléfono, necesidades) para brindar un mejor servicio personalizado y hacer seguimiento. Cuando el cliente comparta sus datos, agradécele y confirma que los has registrado para poder ayudarlo mejor.",
         "welcome_message": "¡Hola! 👋 Soy tu asistente virtual. ¿En qué puedo ayudarte hoy?",
         "payment_link": "https://example.com/pay",
         "response_delay_minutes": 0.5,  # Delay en minutos

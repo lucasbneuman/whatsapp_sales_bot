@@ -134,13 +134,59 @@
 
 ---
 
-## 🐛 Bugs Conocidos
+## 🔧 Sprint Actual - Correcciones Post-Testing
 
-1. **Emojis no se usan**: Flag no se está aplicando correctamente
-2. **Teléfono fijo**: No se puede cambiar en datos recolectados
-3. **Multi-part no funciona**: Implementación pendiente
+### Bugs Detectados en Pruebas
+
+1. **Bot no hace preguntas iniciales**
+   - ❌ Solo responde, no pregunta nombre, necesidades, expectativas
+   - ✅ Debe preguntar activamente en welcome_node
+
+2. **No registra datos del usuario**
+   - ❌ Nombre y email no se capturan en proceso_chat_with_data
+   - ❌ Teléfono no se actualiza
+   - ✅ Debe extraer datos en CADA mensaje del usuario
+
+3. **Bot dice que no maneja información**
+   - ❌ Responde "No, yo no manejo información personal"
+   - ✅ System prompt debe indicar que SÍ recolecta datos para mejorar experiencia
+
+4. **Mensajes multiparte muestran [PAUSA]**
+   - ❌ No se envían como mensajes separados
+   - ❌ Se muestra el texto literal "[PAUSA]"
+   - ✅ Debe implementarse en Gradio para enviar múltiples mensajes
+
+5. **Notas poco completas**
+   - ❌ Solo captura datos básicos
+   - ✅ Crear nodo especializado para generar notas detalladas
+
+6. **Error al solicitar humano**
+   - ❌ Error: 'NoneType' object is not subscriptable
+   - ✅ Revisar router_node y handoff_node
+
+7. **User ID sin prefijos**
+   - ❌ Genera solo "user_XXXXXXXX"
+   - ✅ Debe usar USR_00XXXXXX (PRD) o USRPRUEBAS_00XXXXXX (testing)
+
+### Tareas Pendientes
+
+- [ ] Modificar welcome_node para hacer preguntas iniciales (nombre, necesidades, expectativas)
+- [ ] Corregir system_prompt para indicar recolección de datos
+- [ ] Mejorar extracción de datos en process_chat_with_data (nombre, email, teléfono en cada mensaje)
+- [ ] Implementar envío de mensajes multiparte en Gradio (separar por [PAUSA] y enviar múltiples respuestas)
+- [ ] Crear notes_generator_node para generar resúmenes detallados
+- [ ] Arreglar error de handoff_node (revisar conversación mode None)
+- [ ] Implementar prefijos de User ID (detectar entorno PRD vs testing)
+
+---
+
+## 🐛 Bugs Corregidos (Sprint Anterior)
+
+1. ✅ **Emojis no se usan**: Flag ahora se aplica correctamente con instrucciones explícitas al LLM
+2. ✅ **Teléfono fijo**: Campo ahora es editable en UI
+3. ✅ **Multi-part implementado**: División en 3 partes cuando ≥20 palabras
 
 ---
 
 **Última actualización**: 2025-11-20
-**Versión actual**: v2.1-dev
+**Versión actual**: v2.2-dev

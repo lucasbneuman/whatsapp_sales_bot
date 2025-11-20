@@ -148,7 +148,7 @@ with gr.Blocks(title="WhatsApp Sales Bot", theme=gr.themes.Soft()) as demo:
                     with gr.Group():
                         user_id_display = gr.Textbox(
                             label="",
-                            value="🆔 ID: user_12345678",
+                            value="🆔 ID: USRPRUEBAS_00",
                             interactive=False,
                             show_label=False,
                             container=False
@@ -256,6 +256,19 @@ with gr.Blocks(title="WhatsApp Sales Bot", theme=gr.themes.Soft()) as demo:
                 # Procesar mensaje normalmente
                 new_history, empty_str = await process_chat(message, history)
 
+                # Manejar mensajes multiparte con [PAUSA]
+                if new_history and len(new_history) > 0:
+                    last_bot_message = new_history[-1]
+                    if last_bot_message.get("role") == "assistant" and "[PAUSA]" in last_bot_message.get("content", ""):
+                        # Dividir por [PAUSA] y crear mensajes separados
+                        bot_response = last_bot_message["content"]
+                        parts = [p.strip() for p in bot_response.split("[PAUSA]") if p.strip()]
+
+                        # Remover el último mensaje y agregar partes separadas
+                        new_history = new_history[:-1]
+                        for part in parts:
+                            new_history.append({"role": "assistant", "content": part})
+
                 # Extraer valores actuales (removiendo el formato)
                 user_id = current_user_id.split(": ", 1)[1] if ": " in current_user_id else ""
                 name = current_name.split(": ", 1)[1] if ": " in current_name else ""
@@ -269,8 +282,18 @@ with gr.Blocks(title="WhatsApp Sales Bot", theme=gr.themes.Soft()) as demo:
                 notes = current_notes.split(": ", 1)[1] if ": " in current_notes else ""
 
                 # Generar user_id si no existe
-                if not user_id or user_id == "user_12345678":
-                    user_id = f"user_{uuid.uuid4().hex[:8]}"
+                if not user_id or user_id.startswith("user_") or user_id == "USR_00" or user_id == "USRPRUEBAS_00":
+                    # Detectar entorno (PRD vs testing)
+                    environment = os.getenv("ENVIRONMENT", "testing").lower()
+
+                    # Generar número secuencial (aquí usamos timestamp para unicidad)
+                    from time import time
+                    unique_num = str(int(time() * 1000))[-8:]  # Últimos 8 dígitos del timestamp
+
+                    if environment == "production" or environment == "prd":
+                        user_id = f"USR_{unique_num}"
+                    else:
+                        user_id = f"USRPRUEBAS_{unique_num}"
 
                 # Actualizar último contacto
                 last_contact = datetime.now().strftime("%d/%m/%Y %H:%M")
@@ -300,21 +323,50 @@ with gr.Blocks(title="WhatsApp Sales Bot", theme=gr.themes.Soft()) as demo:
                 if any(word in message_lower for word in ["humano", "persona", "supervisor", "agente", "operador", "hablar con alguien", "hablar con un"]):
                     requests_human = "Sí"
 
-                # Detectar nombre
-                if "me llamo" in message_lower or "soy" in message_lower:
+                # Detectar nombre (mejorado)
+                import re
+                if "me llamo" in message_lower or "soy" in message_lower or "mi nombre es" in message_lower:
                     words = message.split()
                     for i, word in enumerate(words):
-                        if word.lower() in ["llamo", "soy"] and i + 1 < len(words):
+                        if word.lower() in ["llamo", "soy", "nombre"] and i + 1 < len(words):
                             potential_name = words[i + 1].strip(",.!?")
-                            if potential_name and potential_name[0].isupper():
-                                name = potential_name
+                            if potential_name and len(potential_name) > 1:
+                                # Capitalize first letter
+                                name = potential_name.capitalize()
+                                break
 
-                # Detectar email
-                if "@" in message:
-                    words = message.split()
-                    for word in words:
-                        if "@" in word and "." in word:
-                            email = word.strip(",.!?")
+                # Si no se detectó nombre pero el mensaje es corto y empieza con mayúscula (posible nombre)
+                if not name or name == "Aún no mencionó su nombre":
+                    if len(message.split()) <= 3 and message.strip() and message.strip()[0].isupper():
+                        # Podría ser un nombre
+                        potential_name = message.split()[0].strip(",.!?")
+                        if len(potential_name) > 2 and potential_name.isalpha():
+                            name = potential_name.capitalize()
+
+                # Detectar email (mejorado con regex)
+                email_pattern = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+                email_match = re.search(email_pattern, message)
+                if email_match:
+                    email = email_match.group(0)
+
+                # Detectar teléfono (nuevo)
+                # Buscar patrones como "mi teléfono es", "mi telefono es", "mi número es", o simplemente números largos
+                phone_keywords = ["teléfono", "telefono", "número", "numero", "celular", "whatsapp", "contacto"]
+                if any(keyword in message_lower for keyword in phone_keywords):
+                    # Extraer números después del keyword
+                    phone_pattern = r'[\d\s\-\+\(\)]{8,}'
+                    phone_match = re.search(phone_pattern, message)
+                    if phone_match:
+                        extracted_phone = phone_match.group(0).strip()
+                        # Limpiar espacios y caracteres extra
+                        phone = re.sub(r'[^\d\+]', '', extracted_phone)
+                        if len(phone) >= 8:  # Validar que tenga al menos 8 dígitos
+                            phone = "+" + phone if not phone.startswith("+") else phone
+                # También detectar si el mensaje es solo un número largo (probablemente teléfono)
+                elif re.match(r'^[\d\s\-\+\(\)]{8,}$', message.strip()):
+                    phone = re.sub(r'[^\d\+]', '', message.strip())
+                    if len(phone) >= 8:
+                        phone = "+" + phone if not phone.startswith("+") else phone
 
                 # Etapa
                 if len(new_history) <= 2:
@@ -330,18 +382,44 @@ with gr.Blocks(title="WhatsApp Sales Bot", theme=gr.themes.Soft()) as demo:
                 if any(word in message_lower for word in ["necesito", "quiero", "busco", "me interesa"]):
                     needs = message
 
-                # Generar notas en puntos clave
+                # Generar notas en puntos clave (más completas)
                 if stage == "Cierre 💰" or requests_human == "Sí" or len(new_history) >= 10:
-                    conversation_summary = f"Conversación con {name if name and name != 'Aún no mencionó su nombre' else 'usuario'}. "
+                    notes_parts = []
+
+                    # Información del cliente
+                    if name and name != "Aún no mencionó su nombre":
+                        notes_parts.append(f"Cliente: {name}")
+                    else:
+                        notes_parts.append("Cliente: No proporcionó nombre")
+
+                    # Datos de contacto
+                    contact_info = []
+                    if email and email != "No proporcionado":
+                        contact_info.append(f"Email: {email}")
+                    if phone and phone != "+1234567890":
+                        contact_info.append(f"Tel: {phone}")
+                    if contact_info:
+                        notes_parts.append(", ".join(contact_info))
+
+                    # Necesidades e interés
                     if needs and needs != "-":
-                        conversation_summary += f"Necesidades: {needs}. "
-                    if intent != "-":
-                        conversation_summary += f"Intención: {intent}. "
+                        notes_parts.append(f"Interés: {needs}")
+
+                    # Etapa y intención
+                    notes_parts.append(f"Etapa: {stage}, Intención: {intent}")
+
+                    # Sentimiento
+                    notes_parts.append(f"Sentimiento: {sentiment}")
+
+                    # Solicitud de humano
                     if requests_human == "Sí":
-                        conversation_summary += "Solicitó hablar con humano. "
+                        notes_parts.append("⚠️ SOLICITA ATENCIÓN HUMANA")
+
+                    # Estado
                     if stage == "Cierre 💰":
-                        conversation_summary += "Listo para compra. "
-                    notes = conversation_summary
+                        notes_parts.append("✅ LISTO PARA COMPRA")
+
+                    notes = " | ".join(notes_parts)
 
                 # Formatear valores para display compacto
                 user_id_display = f"🆔 ID: {user_id}"
@@ -370,7 +448,7 @@ with gr.Blocks(title="WhatsApp Sales Bot", theme=gr.themes.Soft()) as demo:
                 [chatbot, msg, user_id_display, user_name_display, user_email_display, user_phone_display, last_contact_display, intent_display, sentiment_display, stage_display, needs_display, requests_human_display, notes_display]
             )
             clear.click(
-                lambda: ([], "🆔 ID: user_12345678", "📝 Nombre: Aún no mencionó su nombre", "📧 Email: No proporcionado", "📱 Teléfono: +1234567890", "🕐 Último contacto: -", "🎯 Intención: -", "😊 Sentimiento: -", "📊 Etapa: -", "💡 Necesidades: -", "👨‍💼 Solicita Humano: No", "📋 Notas: -"),
+                lambda: ([], "🆔 ID: USRPRUEBAS_00", "📝 Nombre: Aún no mencionó su nombre", "📧 Email: No proporcionado", "📱 Teléfono: +1234567890", "🕐 Último contacto: -", "🎯 Intención: -", "😊 Sentimiento: -", "📊 Etapa: -", "💡 Necesidades: -", "👨‍💼 Solicita Humano: No", "📋 Notas: -"),
                 None,
                 [chatbot, user_id_display, user_name_display, user_email_display, user_phone_display, last_contact_display, intent_display, sentiment_display, stage_display, needs_display, requests_human_display, notes_display]
             )

@@ -79,23 +79,33 @@ def build_enhanced_system_prompt(config: Dict[str, Any]) -> str:
 
 async def welcome_node(state: ConversationState) -> Dict[str, Any]:
     """
-    Send custom welcome message for new conversations.
+    Send welcome message and ask initial qualifying questions.
 
-    Uses the welcome_message from configuration.
-    This is the first message the user sees.
+    Uses the welcome_message from configuration and adds questions
+    to start collecting user information (name, needs, expectations).
     """
     logger.info("Executing welcome_node")
 
     # Check if this is first message
     user_messages = [m for m in state["messages"] if isinstance(m, HumanMessage)]
     if len(user_messages) <= 1:
-        # Use custom welcome message from configuration
-        welcome_message = state["config"].get("welcome_message", "¡Hola! 👋 Soy tu asistente virtual. ¿En qué puedo ayudarte hoy?")
+        # Get custom welcome message from configuration
+        welcome_message = state["config"].get("welcome_message", "¡Hola! 👋 Soy tu asistente virtual.")
 
-        logger.info(f"Sending custom welcome message: {welcome_message[:50]}...")
+        # Add initial questions to start conversation
+        product_name = state["config"].get("product_name", "nuestros servicios")
+        use_emojis = state["config"].get("use_emojis", True)
+
+        # Build complete welcome with questions
+        if use_emojis:
+            full_welcome = f"{welcome_message}\n\nPara poder ayudarte mejor, me gustaría conocerte un poco. 😊 ¿Podrías decirme tu nombre?"
+        else:
+            full_welcome = f"{welcome_message}\n\nPara poder ayudarte mejor, me gustaría conocerte un poco. ¿Podrías decirme tu nombre?"
+
+        logger.info(f"Sending welcome message with initial questions")
 
         return {
-            "current_response": welcome_message,
+            "current_response": full_welcome,
             "stage": "welcome",
         }
 
@@ -339,8 +349,14 @@ async def conversation_node(state: ConversationState) -> Dict[str, Any]:
     last_message_lower = last_message.lower()
     if any(keyword in last_message_lower for keyword in human_request_keywords):
         logger.info("Human request detected - triggering handoff")
+        # Get product name for personalized response
+        product_name = state["config"].get("product_name", "nuestros servicios")
+        handoff_response = f"¡Claro que sí! 😊 Dame unos minutos para avisar a mi supervisor. Mientras tanto, ¿te gustaría saber más sobre {product_name}?"
+
         return {
+            "current_response": handoff_response,
             "conversation_mode": "NEEDS_ATTENTION",
+            "stage": "handoff",
         }
 
     # Retrieve RAG context if enabled
