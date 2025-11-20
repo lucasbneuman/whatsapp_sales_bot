@@ -219,24 +219,17 @@ class ConfigPanelComponentV2:
                         value=0
                     )
 
-                    tts_voice = gr.Dropdown(
-                        label="Voz TTS",
-                        choices=["alloy", "echo", "fable", "onyx", "nova", "shimmer"],
-                        value="nova",
-                        info="Voz para mensajes de audio"
-                    )
-
-                    gr.Markdown("**Vista previa de voces:**")
                     with gr.Row():
-                        alloy_btn = gr.Button("🔊 Alloy", size="sm")
-                        echo_btn = gr.Button("🔊 Echo", size="sm")
-                        fable_btn = gr.Button("🔊 Fable", size="sm")
-                    with gr.Row():
-                        onyx_btn = gr.Button("🔊 Onyx", size="sm")
-                        nova_btn = gr.Button("🔊 Nova", size="sm")
-                        shimmer_btn = gr.Button("🔊 Shimmer", size="sm")
-
-                    voice_preview_audio = gr.Audio(label="Preview", visible=False, autoplay=True)
+                        tts_voice = gr.Radio(
+                            label="Voz TTS",
+                            choices=["alloy", "echo", "fable", "onyx", "nova", "shimmer"],
+                            value="nova",
+                            info="Selecciona la voz para mensajes de audio"
+                        )
+                        with gr.Column():
+                            gr.Markdown("**Preview:**")
+                            preview_voice_btn = gr.Button("🔊 Escuchar Voz", variant="secondary", size="sm")
+                            voice_preview_audio = gr.Audio(label="", visible=True, autoplay=True)
 
                 # Tab 2: Producto/Servicio
                 with gr.Tab("📦 Producto/Servicio"):
@@ -378,24 +371,11 @@ class ConfigPanelComponentV2:
                 outputs=status_msg
             )
 
-            # Conectar eventos de preview de voces
-            alloy_btn.click(lambda: self.preview_voice("alloy"), outputs=voice_preview_audio).then(
-                lambda: gr.update(visible=True), outputs=voice_preview_audio
-            )
-            echo_btn.click(lambda: self.preview_voice("echo"), outputs=voice_preview_audio).then(
-                lambda: gr.update(visible=True), outputs=voice_preview_audio
-            )
-            fable_btn.click(lambda: self.preview_voice("fable"), outputs=voice_preview_audio).then(
-                lambda: gr.update(visible=True), outputs=voice_preview_audio
-            )
-            onyx_btn.click(lambda: self.preview_voice("onyx"), outputs=voice_preview_audio).then(
-                lambda: gr.update(visible=True), outputs=voice_preview_audio
-            )
-            nova_btn.click(lambda: self.preview_voice("nova"), outputs=voice_preview_audio).then(
-                lambda: gr.update(visible=True), outputs=voice_preview_audio
-            )
-            shimmer_btn.click(lambda: self.preview_voice("shimmer"), outputs=voice_preview_audio).then(
-                lambda: gr.update(visible=True), outputs=voice_preview_audio
+            # Conectar evento de preview de voz
+            preview_voice_btn.click(
+                self.preview_voice,
+                inputs=[tts_voice],
+                outputs=voice_preview_audio
             )
 
         return col
