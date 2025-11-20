@@ -1,14 +1,17 @@
-"""Panel de configuración mejorado con pestañas para Chatbot y Producto/Servicio."""
+"""Panel de configuración mejorado con pestañas para Chatbot, Producto/Servicio y Documentos RAG."""
 
 import gradio as gr
+from pathlib import Path
+import tempfile
 from services.config_manager import get_config_manager
+from services.rag_service import get_rag_service
 from utils.logging_config import get_logger
 
 logger = get_logger(__name__)
 
 
 class ConfigPanelComponentV2:
-    """Componente de configuración con pestañas para Chatbot y Producto."""
+    """Componente de configuración con pestañas para Chatbot, Producto y Documentos RAG."""
 
     def __init__(self, db_session_factory):
         """
@@ -18,6 +21,7 @@ class ConfigPanelComponentV2:
             db_session_factory: Factory para crear sesiones de BD
         """
         self.db_session_factory = db_session_factory
+        self.temp_dir = tempfile.mkdtemp()
         logger.info("Config panel V2 initialized")
 
     async def load_all_configs(self):
@@ -58,6 +62,60 @@ class ConfigPanelComponentV2:
         except Exception as e:
             logger.error(f"Error saving configs: {e}")
             return f"❌ Error: {str(e)}"
+
+    async def upload_documents(self, files):
+        """Subir documentos al RAG."""
+        if not files:
+            return "⚠️ No se seleccionaron archivos", self.get_rag_stats()
+
+        try:
+            rag_service = get_rag_service()
+
+            # Procesar cada archivo
+            uploaded_count = 0
+            total_chunks = 0
+
+            for file in files:
+                try:
+                    # El archivo ya está en una ubicación temporal
+                    file_path = file.name
+                    chunks = await rag_service.upload_document(file_path)
+                    total_chunks += chunks
+                    uploaded_count += 1
+                    logger.info(f"Uploaded {file_path}: {chunks} chunks")
+                except Exception as e:
+                    logger.error(f"Error uploading {file.name}: {e}")
+                    continue
+
+            if uploaded_count > 0:
+                return f"✅ {uploaded_count} archivo(s) subido(s) correctamente ({total_chunks} fragmentos)", self.get_rag_stats()
+            else:
+                return "❌ No se pudo subir ningún archivo", self.get_rag_stats()
+
+        except Exception as e:
+            logger.error(f"Error in upload_documents: {e}")
+            return f"❌ Error: {str(e)}", self.get_rag_stats()
+
+    def get_rag_stats(self):
+        """Obtener estadísticas del RAG."""
+        try:
+            rag_service = get_rag_service()
+            stats = rag_service.get_collection_stats()
+            return f"📊 Fragmentos en base de datos: {stats['total_chunks']}"
+        except Exception as e:
+            logger.error(f"Error getting RAG stats: {e}")
+            return "📊 Fragmentos en base de datos: 0"
+
+    async def clear_rag_collection(self):
+        """Limpiar todos los documentos del RAG."""
+        try:
+            rag_service = get_rag_service()
+            rag_service.clear_collection()
+            logger.info("RAG collection cleared")
+            return "✅ Base de conocimientos limpiada exitosamente", self.get_rag_stats()
+        except Exception as e:
+            logger.error(f"Error clearing RAG collection: {e}")
+            return f"❌ Error: {str(e)}", self.get_rag_stats()
 
     def create_component(self):
         """Crear componente UI con pestañas para Chatbot y Producto."""
@@ -186,6 +244,82 @@ class ConfigPanelComponentV2:
                             placeholder="Ej: Emprendedores, Pequeños negocios",
                             info="¿A quién está dirigido?"
                         )
+
+                # Tab 3: Documentos RAG
+                with gr.Tab("📚 Base de Conocimientos"):
+                    gr.Markdown("### Documentos para el Chatbot")
+                    gr.Markdown("*Sube archivos con información sobre tu producto/servicio. El chatbot usará esta información para responder preguntas específicas.*")
+
+                    with gr.Row():
+                        with gr.Column(scale=2):
+                            gr.Markdown("**Formatos soportados:** TXT, PDF, DOC, DOCX")
+
+                            file_upload = gr.File(
+                                label="Subir Documentos",
+                                file_count="multiple",
+                                file_types=[".txt", ".pdf", ".doc", ".docx"],
+                                type="filepath"
+                            )
+
+                            upload_btn = gr.Button("📤 Subir Archivos", variant="primary")
+
+                        with gr.Column(scale=1):
+                            gr.Markdown("### ℹ️ Información")
+                            gr.Markdown("""
+                            **¿Qué puedes subir?**
+                            - Catálogos de productos
+                            - Manuales de usuario
+                            - FAQs
+                            - Guías de precios
+                            - Políticas y términos
+
+                            **¿Cómo funciona?**
+                            1. Sube tus documentos
+                            2. Activa RAG en Chatbot
+                            3. El bot usará automáticamente esta información
+                            """)
+
+                    rag_stats = gr.Textbox(
+                        label="Estado",
+                        value=self.get_rag_stats(),
+                        interactive=False
+                    )
+
+                    upload_status = gr.Textbox(
+                        label="Resultado de Carga",
+                        interactive=False,
+                        visible=False
+                    )
+
+                    gr.Markdown("---")
+                    gr.Markdown("### ⚠️ Zona de Peligro")
+
+                    with gr.Row():
+                        clear_btn = gr.Button("🗑️ Limpiar Base de Conocimientos", variant="stop", size="sm")
+                        clear_status = gr.Textbox(
+                            label="",
+                            interactive=False,
+                            show_label=False,
+                            visible=False
+                        )
+
+                    # Conectar eventos RAG
+                    upload_btn.click(
+                        self.upload_documents,
+                        inputs=[file_upload],
+                        outputs=[upload_status, rag_stats]
+                    ).then(
+                        lambda: gr.update(visible=True),
+                        outputs=[upload_status]
+                    )
+
+                    clear_btn.click(
+                        self.clear_rag_collection,
+                        outputs=[clear_status, rag_stats]
+                    ).then(
+                        lambda: gr.update(visible=True),
+                        outputs=[clear_status]
+                    )
 
             # Botón de guardar
             save_btn = gr.Button("💾 Guardar Configuración", variant="primary", size="lg")
