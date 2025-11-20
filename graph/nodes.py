@@ -79,30 +79,23 @@ def build_enhanced_system_prompt(config: Dict[str, Any]) -> str:
 
 async def welcome_node(state: ConversationState) -> Dict[str, Any]:
     """
-    Generate warm welcome message for new conversations.
+    Send custom welcome message for new conversations.
 
-    Uses GPT-4o for high-quality, personalized greeting.
-    Includes product/service information if available.
+    Uses the welcome_message from configuration.
+    This is the first message the user sees.
     """
     logger.info("Executing welcome_node")
-
-    llm_service = get_llm_service()
 
     # Check if this is first message
     user_messages = [m for m in state["messages"] if isinstance(m, HumanMessage)]
     if len(user_messages) <= 1:
-        # Generate welcome message with product context
-        enhanced_prompt = build_enhanced_system_prompt(state["config"])
-        welcome_prompt = f"{enhanced_prompt}\n\nGenera un mensaje de bienvenida cálido y breve (máximo 2-3 oraciones) para un nuevo cliente que se comunica por WhatsApp."
+        # Use custom welcome message from configuration
+        welcome_message = state["config"].get("welcome_message", "¡Hola! 👋 Soy tu asistente virtual. ¿En qué puedo ayudarte hoy?")
 
-        response = await llm_service.generate_response(
-            messages=[HumanMessage(content=welcome_prompt)],
-            system_prompt=enhanced_prompt,
-            use_emojis=state["config"].get("use_emojis", True),
-        )
+        logger.info(f"Sending custom welcome message: {welcome_message[:50]}...")
 
         return {
-            "current_response": response,
+            "current_response": welcome_message,
             "stage": "welcome",
         }
 
@@ -332,11 +325,23 @@ async def conversation_node(state: ConversationState) -> Dict[str, Any]:
     # Get configuration with enhanced product context
     enhanced_prompt = build_enhanced_system_prompt(state["config"])
     use_emojis = state["config"].get("use_emojis", True)
-    rag_enabled = state["config"].get("rag_enabled", False)
+
+    # Auto-enable RAG if there are documents in the collection
+    rag_stats = rag_service.get_collection_stats()
+    rag_enabled = rag_stats['total_chunks'] > 0
 
     # Get last user message for RAG
     user_messages = [m for m in state["messages"] if isinstance(m, HumanMessage)]
     last_message = user_messages[-1].content if user_messages else ""
+
+    # Check if user is requesting to speak with a human
+    human_request_keywords = ["humano", "persona", "supervisor", "agente", "operador", "hablar con alguien", "hablar con un", "hablar con una", "asistente real", "persona real"]
+    last_message_lower = last_message.lower()
+    if any(keyword in last_message_lower for keyword in human_request_keywords):
+        logger.info("Human request detected - triggering handoff")
+        return {
+            "conversation_mode": "NEEDS_ATTENTION",
+        }
 
     # Retrieve RAG context if enabled
     rag_context = None
@@ -344,7 +349,7 @@ async def conversation_node(state: ConversationState) -> Dict[str, Any]:
         try:
             rag_context = await rag_service.retrieve_context(last_message, k=3)
             if rag_context:
-                logger.info("Retrieved RAG context")
+                logger.info(f"Retrieved RAG context ({rag_stats['total_chunks']} chunks available)")
         except Exception as e:
             logger.error(f"RAG retrieval error: {e}")
 
@@ -354,6 +359,7 @@ async def conversation_node(state: ConversationState) -> Dict[str, Any]:
         system_prompt=enhanced_prompt,
         use_emojis=use_emojis,
         rag_context=rag_context,
+        config=state["config"],
     )
 
     # Update stage based on conversation
@@ -488,11 +494,17 @@ async def handoff_node(state: ConversationState) -> Dict[str, Any]:
     Hand off conversation to human agent.
 
     Changes mode to NEEDS_ATTENTION and pauses bot.
+    Responds with a friendly message letting user know a human will assist.
     """
-    logger.info("Executing handoff_node")
+    logger.info("Executing handoff_node - User requested human assistance")
+
+    # Get product name for personalized response
+    product_name = state["config"].get("product_name", "nuestros servicios")
+
+    response = f"¡Claro que sí! 😊 Dame unos minutos para avisar a mi supervisor. Mientras tanto, ¿te gustaría saber más sobre {product_name}?"
 
     return {
-        "current_response": "Quiero asegurarme de que recibas la mejor ayuda posible. Déjame conectarte con uno de nuestros especialistas que podrá asistirte mejor.",
+        "current_response": response,
         "conversation_mode": "NEEDS_ATTENTION",
         "stage": "handoff",
     }

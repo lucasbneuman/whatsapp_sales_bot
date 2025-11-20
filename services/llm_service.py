@@ -260,8 +260,11 @@ Responde SOLO con JSON válido. Si un campo no está presente, usa null.
         # Add word limit instruction
         enhanced_prompt += f"\n\nIMPORTANTE: Limita tu respuesta a máximo {max_words_per_response} palabras."
 
-        if not use_emojis:
-            enhanced_prompt += "\n\nIMPORTANT: Do NOT use emojis in your responses."
+        # Add emoji instruction
+        if use_emojis:
+            enhanced_prompt += "\n\nIMPORTANTE: Usa emojis de manera natural en tus respuestas para hacerlas más amigables y expresivas."
+        else:
+            enhanced_prompt += "\n\nIMPORTANTE: NO uses emojis en tus respuestas."
 
         if rag_context:
             enhanced_prompt += f"\n\nRELEVANT CONTEXT:\n{rag_context}\n\nUse this context to inform your response when relevant."
@@ -291,8 +294,17 @@ Responde SOLO con JSON válido. Si un campo no está presente, usa null.
             # Apply multi-part message splitting if enabled
             if multi_part_messages:
                 word_count = len(response_text.split())
-                if word_count > 50:
-                    parts = self.split_into_parts(response_text, max_words=50)
+                # Split if >= 20 words
+                if word_count >= 20:
+                    # Calculate words per part for 3 parts
+                    words_per_part = word_count // 3 if word_count >= 30 else word_count // 2
+                    parts = self.split_into_parts(response_text, max_words=words_per_part)
+
+                    # Limit to 3 parts maximum
+                    if len(parts) > 3:
+                        # Merge extra parts into the last 3
+                        parts = [parts[0], ' '.join(parts[1:-1]), parts[-1]]
+
                     if len(parts) > 1:
                         response_text = "\n\n[PAUSA]\n\n".join(parts)
                         logger.info(f"Response split into {len(parts)} parts for multi-part delivery")

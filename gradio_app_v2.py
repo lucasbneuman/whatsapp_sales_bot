@@ -146,6 +146,13 @@ with gr.Blocks(title="WhatsApp Sales Bot", theme=gr.themes.Soft()) as demo:
 
                     # Display compacto con formato de una línea
                     with gr.Group():
+                        user_id_display = gr.Textbox(
+                            label="",
+                            value="🆔 ID: user_12345678",
+                            interactive=False,
+                            show_label=False,
+                            container=False
+                        )
                         user_name_display = gr.Textbox(
                             label="",
                             value="📝 Nombre: Aún no mencionó su nombre",
@@ -163,9 +170,10 @@ with gr.Blocks(title="WhatsApp Sales Bot", theme=gr.themes.Soft()) as demo:
                         user_phone_display = gr.Textbox(
                             label="",
                             value="📱 Teléfono: +1234567890",
-                            interactive=False,
+                            interactive=True,
                             show_label=False,
-                            container=False
+                            container=False,
+                            placeholder="Ingrese número de teléfono"
                         )
                         last_contact_display = gr.Textbox(
                             label="",
@@ -203,6 +211,21 @@ with gr.Blocks(title="WhatsApp Sales Bot", theme=gr.themes.Soft()) as demo:
                             container=False,
                             lines=2
                         )
+                        requests_human_display = gr.Textbox(
+                            label="",
+                            value="👨‍💼 Solicita Humano: No",
+                            interactive=False,
+                            show_label=False,
+                            container=False
+                        )
+                        notes_display = gr.Textbox(
+                            label="",
+                            value="📋 Notas: -",
+                            interactive=False,
+                            show_label=False,
+                            container=False,
+                            lines=3
+                        )
 
                 # Columna derecha: Chat de prueba
                 with gr.Column(scale=2):
@@ -225,20 +248,29 @@ with gr.Blocks(title="WhatsApp Sales Bot", theme=gr.themes.Soft()) as demo:
                     clear = gr.Button("Limpiar Chat", size="sm")
 
             # Función para actualizar datos del usuario
-            async def process_chat_with_data(message: str, history: list, current_name, current_email, current_last_contact, current_intent, current_sentiment, current_stage, current_needs) -> tuple:
+            async def process_chat_with_data(message: str, history: list, current_user_id, current_name, current_email, current_phone, current_last_contact, current_intent, current_sentiment, current_stage, current_needs, current_requests_human, current_notes) -> tuple:
                 """Procesar chat y actualizar datos del usuario."""
                 from datetime import datetime
+                import uuid
 
                 # Procesar mensaje normalmente
                 new_history, empty_str = await process_chat(message, history)
 
                 # Extraer valores actuales (removiendo el formato)
+                user_id = current_user_id.split(": ", 1)[1] if ": " in current_user_id else ""
                 name = current_name.split(": ", 1)[1] if ": " in current_name else ""
                 email = current_email.split(": ", 1)[1] if ": " in current_email else ""
+                phone = current_phone.split(": ", 1)[1] if ": " in current_phone else "+1234567890"
                 intent = current_intent.split(": ", 1)[1] if ": " in current_intent else ""
                 sentiment = current_sentiment.split(": ", 1)[1] if ": " in current_sentiment else ""
                 stage = current_stage.split(": ", 1)[1] if ": " in current_stage else ""
                 needs = current_needs.split(": ", 1)[1] if ": " in current_needs else ""
+                requests_human = current_requests_human.split(": ", 1)[1] if ": " in current_requests_human else "No"
+                notes = current_notes.split(": ", 1)[1] if ": " in current_notes else ""
+
+                # Generar user_id si no existe
+                if not user_id or user_id == "user_12345678":
+                    user_id = f"user_{uuid.uuid4().hex[:8]}"
 
                 # Actualizar último contacto
                 last_contact = datetime.now().strftime("%d/%m/%Y %H:%M")
@@ -263,6 +295,10 @@ with gr.Blocks(title="WhatsApp Sales Bot", theme=gr.themes.Soft()) as demo:
                     sentiment = "Negativo 😞"
                 else:
                     sentiment = "Neutral 😐"
+
+                # Detectar solicitud de humano
+                if any(word in message_lower for word in ["humano", "persona", "supervisor", "agente", "operador", "hablar con alguien", "hablar con un"]):
+                    requests_human = "Sí"
 
                 # Detectar nombre
                 if "me llamo" in message_lower or "soy" in message_lower:
@@ -294,32 +330,49 @@ with gr.Blocks(title="WhatsApp Sales Bot", theme=gr.themes.Soft()) as demo:
                 if any(word in message_lower for word in ["necesito", "quiero", "busco", "me interesa"]):
                     needs = message
 
+                # Generar notas en puntos clave
+                if stage == "Cierre 💰" or requests_human == "Sí" or len(new_history) >= 10:
+                    conversation_summary = f"Conversación con {name if name and name != 'Aún no mencionó su nombre' else 'usuario'}. "
+                    if needs and needs != "-":
+                        conversation_summary += f"Necesidades: {needs}. "
+                    if intent != "-":
+                        conversation_summary += f"Intención: {intent}. "
+                    if requests_human == "Sí":
+                        conversation_summary += "Solicitó hablar con humano. "
+                    if stage == "Cierre 💰":
+                        conversation_summary += "Listo para compra. "
+                    notes = conversation_summary
+
                 # Formatear valores para display compacto
+                user_id_display = f"🆔 ID: {user_id}"
                 name_display = f"📝 Nombre: {name if name and name not in ['Aún no mencionó su nombre', '-'] else 'Aún no mencionó su nombre'}"
                 email_display = f"📧 Email: {email if email and email not in ['No proporcionado', '-'] else 'No proporcionado'}"
+                phone_display = f"📱 Teléfono: {phone}"
                 last_contact_display = f"🕐 Último contacto: {last_contact}"
                 intent_display = f"🎯 Intención: {intent if intent and intent != '-' else '-'}"
                 sentiment_display = f"😊 Sentimiento: {sentiment if sentiment and sentiment != '-' else '-'}"
                 stage_display = f"📊 Etapa: {stage if stage and stage != '-' else '-'}"
                 needs_display = f"💡 Necesidades: {needs if needs and needs != '-' else '-'}"
+                requests_human_display = f"👨‍💼 Solicita Humano: {requests_human}"
+                notes_display = f"📋 Notas: {notes if notes else '-'}"
 
-                return new_history, "", name_display, email_display, last_contact_display, intent_display, sentiment_display, stage_display, needs_display
+                return new_history, "", user_id_display, name_display, email_display, phone_display, last_contact_display, intent_display, sentiment_display, stage_display, needs_display, requests_human_display, notes_display
 
             # Connect events
             msg.submit(
                 process_chat_with_data,
-                [msg, chatbot, user_name_display, user_email_display, last_contact_display, intent_display, sentiment_display, stage_display, needs_display],
-                [chatbot, msg, user_name_display, user_email_display, last_contact_display, intent_display, sentiment_display, stage_display, needs_display]
+                [msg, chatbot, user_id_display, user_name_display, user_email_display, user_phone_display, last_contact_display, intent_display, sentiment_display, stage_display, needs_display, requests_human_display, notes_display],
+                [chatbot, msg, user_id_display, user_name_display, user_email_display, user_phone_display, last_contact_display, intent_display, sentiment_display, stage_display, needs_display, requests_human_display, notes_display]
             )
             send.click(
                 process_chat_with_data,
-                [msg, chatbot, user_name_display, user_email_display, last_contact_display, intent_display, sentiment_display, stage_display, needs_display],
-                [chatbot, msg, user_name_display, user_email_display, last_contact_display, intent_display, sentiment_display, stage_display, needs_display]
+                [msg, chatbot, user_id_display, user_name_display, user_email_display, user_phone_display, last_contact_display, intent_display, sentiment_display, stage_display, needs_display, requests_human_display, notes_display],
+                [chatbot, msg, user_id_display, user_name_display, user_email_display, user_phone_display, last_contact_display, intent_display, sentiment_display, stage_display, needs_display, requests_human_display, notes_display]
             )
             clear.click(
-                lambda: ([], "📝 Nombre: Aún no mencionó su nombre", "📧 Email: No proporcionado", "🕐 Último contacto: -", "🎯 Intención: -", "😊 Sentimiento: -", "📊 Etapa: -", "💡 Necesidades: -"),
+                lambda: ([], "🆔 ID: user_12345678", "📝 Nombre: Aún no mencionó su nombre", "📧 Email: No proporcionado", "📱 Teléfono: +1234567890", "🕐 Último contacto: -", "🎯 Intención: -", "😊 Sentimiento: -", "📊 Etapa: -", "💡 Necesidades: -", "👨‍💼 Solicita Humano: No", "📋 Notas: -"),
                 None,
-                [chatbot, user_name_display, user_email_display, last_contact_display, intent_display, sentiment_display, stage_display, needs_display]
+                [chatbot, user_id_display, user_name_display, user_email_display, user_phone_display, last_contact_display, intent_display, sentiment_display, stage_display, needs_display, requests_human_display, notes_display]
             )
 
     gr.Markdown("""
