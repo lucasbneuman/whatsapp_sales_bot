@@ -1,0 +1,37 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir:*)",
+      "Bash(mkdir:*)",
+      "Bash(tree:*)",
+      "Bash(python -m venv:*)",
+      "Bash(venv/Scripts/pip.exe install:*)",
+      "Bash(venv/Scripts/pip.exe:*)",
+      "Bash(venv/Scripts/python.exe app.py)",
+      "Bash(taskkill:*)",
+      "Bash(timeout:*)",
+      "Bash(nul)",
+      "Bash(python:*)",
+      "Bash(venv/Scripts/python.exe:*)",
+      "Bash(ping:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(powershell -Command \"Stop-Process -Id 4756 -Force; Stop-Process -Id 16076 -Force\")",
+      "Bash(powershell -Command \"Stop-Process -Id 4756 -Force\")",
+      "Bash(powershell -Command \"Get-Process python | Stop-Process -Force\")",
+      "Bash(powershell -Command \"Get-Process python -ErrorAction SilentlyContinue | Stop-Process -Force\")",
+      "Bash(python3:*)",
+      "Bash(venvScriptspip.exe install -r requirements.txt)",
+      "Bash(del:*)",
+      "Bash(git init:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nInitial commit: WhatsApp Sales Bot funcionando\n\n- Gradio UI v2 con 3 pestañas (Chats, Configuración, Pruebas)\n- LangGraph workflow completo\n- Sistema de configuración con múltiples prompts\n- Panel de chats en vivo\n- Panel de pruebas con datos recolectados\n- Integración con OpenAI (GPT-4o y GPT-4o-mini)\n- Sistema de RAG con ChromaDB\n- TTS con OpenAI\n- Base de datos SQLite con SQLAlchemy\n\n🤖 Generated with Claude Code\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git commit:*)",
+      "Bash(.gitignore)",
+      "Bash(git reset:*)",
+      "Bash([ -f nul ])"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

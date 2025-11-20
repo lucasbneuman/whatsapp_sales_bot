@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+ENV/
+env/
+*.egg-info/
+dist/
+build/
+
+# Environment variables
+.env
+.env.local
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+logs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Chroma DB
+chroma_db/
+
+# Audio files
+*.mp3
+*.wav
+*.ogg
+
+# Temporary files
+*.tmp
+temp/
+nul
