@@ -29,6 +29,11 @@ class User(Base):
     conversation_mode = Column(String(20), default="AUTO")  # AUTO/MANUAL/NEEDS_ATTENTION
     conversation_summary = Column(Text, nullable=True)  # AI-generated summary of conversation
 
+    # HubSpot Integration
+    hubspot_contact_id = Column(String(50), nullable=True, index=True)  # HubSpot contact ID
+    hubspot_lifecyclestage = Column(String(50), nullable=True)  # lead, marketingqualifiedlead, salesqualifiedlead, opportunity, customer, evangelist, other
+    hubspot_synced_at = Column(DateTime, nullable=True)  # Last sync timestamp
+
     # Activity tracking
     total_messages = Column(Integer, default=0)
     last_message_at = Column(DateTime, nullable=True)

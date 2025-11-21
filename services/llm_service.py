@@ -197,19 +197,31 @@ Responde con UNA SOLA PALABRA: positive, neutral, o negative"""
         """
         llm = self.get_llm_for_task("extraction")
 
-        prompt = f"""Extrae cualquier información del cliente de este mensaje.
+        prompt = f"""Extrae ÚNICAMENTE información EXPLÍCITA del cliente de este mensaje. NO inventes ni asumas datos.
 
 Mensaje: "{message}"
 
-Busca:
-- name: Nombre del cliente
-- email: Dirección de correo electrónico
-- phone: Número de teléfono
-- needs: Lo que está buscando
-- budget: Presupuesto o rango de precios mencionado
-- pain_points: Problemas que quiere resolver
+REGLAS CRÍTICAS:
+- Solo extraer datos que el cliente MENCIONE EXPLÍCITAMENTE
+- Si el dato no está presente, usar null
+- NO asumir ni inferir información
+- Validar que cada dato sea correcto antes de incluirlo
 
-Responde SOLO con JSON válido. Si un campo no está presente, usa null.
+Campos a buscar:
+- name: Nombre completo del cliente (Capitalizar: "lucas" → "Lucas", "juan perez" → "Juan Perez")
+- email: Email válido (debe tener formato email@dominio.com)
+- phone: Número de teléfono completo (con código de país si está disponible)
+- needs: Lo que el cliente EXPLÍCITAMENTE dice que busca o necesita
+- budget: Presupuesto o rango de precio que el cliente MENCIONA
+- pain_points: Problemas específicos que el cliente MENCIONA que quiere resolver
+
+VALIDACIÓN:
+- name: Debe ser un nombre real, no saludos como "hola" o "buenos días"
+- email: Debe tener formato válido (usuario@dominio)
+- phone: Debe ser un número, no palabras
+- needs/pain_points: Deben ser descripciones concretas, no frases genéricas
+
+Responde SOLO con JSON válido:
 {{"name": null, "email": null, "phone": null, "needs": null, "budget": null, "pain_points": null}}"""
 
         try:
@@ -217,11 +229,62 @@ Responde SOLO con JSON válido. Si un campo no está presente, usa null.
             response = await llm.ainvoke(messages)
 
             import json
+            import re
             result = json.loads(response.content)
+
             # Filter out null values
-            result = {k: v for k, v in result.items() if v is not None}
-            logger.info(f"Data extracted: {result}")
-            return result
+            result = {k: v for k, v in result.items() if v is not None and v != ""}
+
+            # VALIDATION: Post-process and validate extracted data
+            validated_result = {}
+
+            # Validate and process name
+            if "name" in result and result["name"]:
+                name = result["name"].strip()
+                # Filter out greetings and invalid names
+                invalid_names = ["hola", "buenos dias", "buenas tardes", "buenas noches", "hello", "hi"]
+                if name.lower() not in invalid_names and len(name) > 1:
+                    validated_result["name"] = name.title()
+
+            # Validate email format
+            if "email" in result and result["email"]:
+                email = result["email"].strip()
+                # Basic email validation regex
+                if re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
+                    validated_result["email"] = email.lower()
+
+            # Validate phone format
+            if "phone" in result and result["phone"]:
+                phone = result["phone"].strip()
+                # Check if it contains mostly numbers (allow +, -, spaces, parentheses)
+                cleaned_phone = re.sub(r'[\s\-\(\)]', '', phone)
+                if cleaned_phone.startswith('+'):
+                    cleaned_phone = cleaned_phone[1:]
+                if cleaned_phone.isdigit() and len(cleaned_phone) >= 7:
+                    validated_result["phone"] = phone
+
+            # Validate needs (should be meaningful text, at least 5 characters)
+            if "needs" in result and result["needs"]:
+                needs = result["needs"].strip()
+                if len(needs) >= 5:
+                    validated_result["needs"] = needs
+
+            # Validate budget (check it mentions money or numbers)
+            if "budget" in result and result["budget"]:
+                budget = result["budget"].strip()
+                # Should contain numbers or money-related keywords
+                if re.search(r'\d+|pesos|dolares|euros|precio|costo', budget.lower()):
+                    validated_result["budget"] = budget
+
+            # Validate pain_points (should be meaningful text)
+            if "pain_points" in result and result["pain_points"]:
+                pain_points = result["pain_points"].strip()
+                if len(pain_points) >= 5:
+                    validated_result["pain_points"] = pain_points
+
+            logger.info(f"Data extracted and validated: {validated_result}")
+            return validated_result
+
         except Exception as e:
             logger.error(f"Data extraction error: {e}")
             return {}

@@ -100,6 +100,7 @@ async def process_chat(message: str, history: list, user_phone: str = "+12345678
                 conversation_history=messages,
                 config=config,
                 db_session=db,
+                db_user=user,  # Pass user object for HubSpot sync
             )
 
             bot_response = result.get("current_response", "No response generated")
@@ -124,10 +125,10 @@ async def process_chat(message: str, history: list, user_phone: str = "+12345678
                 metadata={"stage": result.get("stage")}
             )
 
-            # Update user info if available
-            if result.get("user_name") and not user.name:
+            # Update user info if available (always update to allow corrections)
+            if result.get("user_name"):
                 await crud.update_user(db, user.id, name=result.get("user_name"))
-            if result.get("user_email") and not user.email:
+            if result.get("user_email"):
                 await crud.update_user(db, user.id, email=result.get("user_email"))
 
             print(f"✅ Messages saved to database for user {user.id}")

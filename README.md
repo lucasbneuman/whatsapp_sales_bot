@@ -9,20 +9,25 @@ Sistema inteligente de ventas conversacional para WhatsApp con IA, construido co
 - **IA Multimodal**: Integración con GPT-4o y GPT-4o-mini
 - **Text-to-Speech**: Voces configurables con OpenAI TTS (ratio 0-100%)
 - **RAG (Retrieval Augmented Generation)**: ChromaDB para conocimiento empresarial
+- **Recolección Inteligente de Datos**: Extracción y validación automática de información del cliente
 - **Configuración Dinámica**: Panel completo de configuración en tiempo real
 - **Persistencia**: Base de datos SQLite con historial completo por usuario
 
 ### 📊 Panel de Control Gradio
-- **Chats en Vivo**: Monitoreo de conversaciones activas
+- **Chats en Vivo**: Monitoreo de conversaciones activas con datos recolectados
 - **Configuración Avanzada**: System prompts, voces TTS, ratio audio/texto
-- **Panel de Pruebas**: Simulación de conversaciones con datos recolectados en tiempo real
-- **Gestión de Documentos**: Upload y gestión de base de conocimiento
+- **Panel de Pruebas**: Simulación de conversaciones con datos en tiempo real
+- **Gestión de Documentos**: Upload y gestión de base de conocimiento RAG
 
 ### 🔗 Integraciones
-- WhatsApp Business API (Twilio)
-- HubSpot CRM (opcional)
-- OpenAI (GPT-4o, GPT-4o-mini, TTS)
-- ChromaDB (Vector Store)
+- **WhatsApp Business API** (Twilio)
+- **HubSpot CRM** - Sincronización automática en tiempo real:
+  - Campos estándar: name, email, phone, lifecyclestage
+  - Campos personalizados: needs, pain_points, budget, intent_score, sentiment
+  - Notas automáticas de conversación
+  - Validación de datos antes de sincronizar
+- **OpenAI** (GPT-4o, GPT-4o-mini, TTS)
+- **ChromaDB** (Vector Store)
 
 ---
 
@@ -38,7 +43,7 @@ Sistema inteligente de ventas conversacional para WhatsApp con IA, construido co
 
 ```bash
 # Clonar repositorio
-git clone <tu-repo>
+git clone https://github.com/lucasbneuman/whatsapp_sales_bot.git
 cd whatsapp_sales_bot
 
 # Crear entorno virtual
@@ -62,9 +67,6 @@ Crear archivo `.env` en la raíz del proyecto:
 # OpenAI (REQUERIDO)
 OPENAI_API_KEY=sk-...
 
-# Entorno
-ENVIRONMENT=testing  # testing o production
-
 # Base de Datos
 DATABASE_URL=sqlite+aiosqlite:///./sales_bot.db
 
@@ -73,8 +75,8 @@ TWILIO_ACCOUNT_SID=AC...
 TWILIO_AUTH_TOKEN=...
 TWILIO_WHATSAPP_NUMBER=whatsapp:+14155238886
 
-# HubSpot (Opcional)
-HUBSPOT_ACCESS_TOKEN=pat-...
+# HubSpot CRM (Opcional)
+HUBSPOT_ACCESS_TOKEN=pat-na1-...
 
 # Logging
 LOG_LEVEL=INFO
@@ -89,262 +91,231 @@ python app.py
 
 Acceder a: `http://localhost:7860`
 
-#### Webhook WhatsApp (Producción)
-```bash
-uvicorn whatsapp_webhook:app --host 0.0.0.0 --port 8000
-```
+**Pestañas disponibles:**
+- 💬 **Chats**: Visualización de conversaciones en vivo
+- ⚙️ **Configuración**: Prompts, voces TTS, documentos RAG
+- 🧪 **Pruebas**: Simulador de conversaciones con datos recolectados
 
 ---
 
 ## 📖 Uso
 
-### Primera Configuración
+### Configuración Inicial
 
-1. **Ejecutar**: `python app.py`
-2. **Acceder**: `http://localhost:7860`
-3. **Ir a "⚙️ Configuración"**
-4. **Configurar campos obligatorios**:
-   - **System Prompt**: Personalidad y objetivo del bot
-   - **Mensaje de Bienvenida**: Primer mensaje al usuario
-5. **Configurar producto/servicio** (opcional pero recomendado)
-6. **Guardar configuración**
+1. **System Prompt**: Define la personalidad y objetivo del bot
+2. **Información del Producto/Servicio**: Contexto automático para RAG
+3. **Voces TTS**: Selecciona voz y ratio audio/texto (0-100%)
+4. **Documentos**: Sube PDFs/TXT para conocimiento adicional
 
-⚠️ **Importante**: El bot NO funcionará hasta configurar al menos `system_prompt` y `welcome_message`
+### Panel de Pruebas
 
-### Probar el Bot
+Simula conversaciones completas y visualiza:
+- Datos recolectados (nombre, email, teléfono, necesidades, presupuesto, pain points)
+- Intent Score (0-1): Probabilidad de compra
+- Sentiment: positive/neutral/negative
+- Stage: welcome → qualifying → nurturing → closing → sold
+- Notas LLM: Observaciones del asistente
+- Historial de mensajes completo
 
-1. **Ir a "🧪 Pruebas"**
-2. **Escribir mensaje en el chat**
-3. **Ver respuesta del bot** (texto y/o audio según configuración)
-4. **Observar datos recolectados** (nombre, email, intención, sentimiento, etc.)
+### Integración HubSpot CRM
 
-### Configuraciones Avanzadas
+#### Setup Automático
 
-#### Text/Audio Ratio
-- **0-49%**: Solo texto (sin audio)
-- **50%**: 50% probabilidad de enviar audio + texto
-- **75%**: 75% probabilidad de enviar audio + texto
-- **100%**: Solo audio (sin texto)
+Los campos personalizados se crean automáticamente en la primera sincronización:
+- `intent_score` (Number)
+- `sentiment` (Dropdown: positive/neutral/negative)
+- `needs` (Textarea)
+- `pain_points` (Textarea)
+- `budget` (Text)
 
-#### Voces TTS Disponibles
-`alloy`, `echo`, `fable`, `onyx`, `nova`, `shimmer`
+#### Sincronización en Tiempo Real
 
-#### Multi-part Messages
-Activar para enviar mensajes largos en partes separadas con `[PAUSA]`
+El bot sincroniza automáticamente:
+1. Extrae datos del cliente (con validación estricta)
+2. Valida formato de email, teléfono, etc.
+3. Sincroniza a HubSpot (create o update automático)
+4. Actualiza notas con resumen de conversación
+5. Mapea lifecycle stages:
+   - `welcome/qualifying` → lead
+   - `nurturing` → marketingqualifiedlead
+   - `closing` → salesqualifiedlead
+   - `sold` → customer
 
-#### Límite de Palabras por Respuesta
-Configurar máximo de palabras (default: 100)
+#### Testing HubSpot
+
+```bash
+python test_hubspot.py
+```
+
+Ver `HUBSPOT_SETUP.md` para instrucciones detalladas.
 
 ---
 
 ## 🏗️ Arquitectura
 
-### Workflow LangGraph (11 Nodos)
+### LangGraph Workflow (11 Nodos)
 
 ```
-1. Welcome Node → Mensaje de bienvenida personalizado
-2. Intent Classifier → Clasifica intención de compra (GPT-4o-mini)
-3. Sentiment Analyzer → Analiza sentimiento del cliente
-4. Data Collector → Extrae datos (nombre, email, necesidades)
-5. Router → Decide siguiente paso basado en estado
-    ├─→ Conversation Node (conversación general)
-    ├─→ Closing Node (alta intención de compra)
-    ├─→ Payment Node (listo para pagar)
-    ├─→ Follow-up Node (usuario se va)
-    └─→ Handoff Node (necesita atención humana)
-6. Conversation Node → Respuesta contextual con RAG
-7. Closing Node → Manejo de cierre de venta
-8. Payment Node → Envío de link de pago
-9. Follow-up Node → Programa seguimientos automáticos
-10. Handoff Node → Transferencia a humano
-11. Summary Node → Genera resumen de conversación
+welcome_node
+    ↓
+intent_classifier_node (GPT-4o-mini: 0-1 score)
+    ↓
+sentiment_analyzer_node (GPT-4o-mini: positive/neutral/negative)
+    ↓
+data_collector_node (Extracción + Validación + HubSpot Sync)
+    ↓
+router_node (Conditional routing)
+    ├── conversation_node (GPT-4o + RAG)
+    ├── closing_node (High intent)
+    ├── payment_node (Ready to buy)
+    ├── follow_up_node (Leaving)
+    └── handoff_node (Needs attention)
 ```
 
-### Estructura del Proyecto
+### Validación de Datos
+
+**Nombre:**
+- ❌ Rechaza saludos: "hola", "buenos días"
+- ✅ Capitaliza: "lucas" → "Lucas"
+
+**Email:**
+- ✅ Formato válido: `usuario@dominio.com`
+- ❌ Rechaza: `usuario@dominio` (sin TLD)
+
+**Teléfono:**
+- ✅ Números con formato: `+54 911 1234-5678`
+- ✅ Mínimo 7 dígitos
+- ❌ Rechaza texto no numérico
+
+**Needs/Pain Points:**
+- ✅ Mínimo 5 caracteres
+- ✅ Descripciones concretas
+- ❌ Rechaza frases vacías
+
+**Budget:**
+- ✅ Debe mencionar números o keywords monetarios
+- ❌ Rechaza texto sin referencia a dinero
+
+---
+
+## 📁 Estructura del Proyecto
 
 ```
 whatsapp_sales_bot/
-├── app.py                      # Aplicación principal Gradio ⭐
-├── whatsapp_webhook.py         # Webhook para WhatsApp
-├── reset_config.py             # Script para resetear config
-├── requirements.txt            # Dependencias
-├── .env                        # Variables de entorno (NO commitear)
-├── TODO.md                     # Lista de tareas y roadmap
-│
+├── app.py                    # Aplicación Gradio principal
+├── whatsapp_webhook.py       # Webhook para Twilio WhatsApp
+├── requirements.txt          # Dependencias
+├── .env                      # Variables de entorno (crear)
 ├── database/
-│   ├── models.py              # Modelos SQLAlchemy (User, Message, Config, FollowUp)
-│   └── crud.py                # Operaciones CRUD
-│
+│   ├── models.py            # SQLAlchemy models
+│   ├── crud.py              # Database operations
+│   └── database.py          # DB connection
 ├── graph/
-│   ├── state.py               # Estado del grafo LangGraph
-│   ├── nodes.py               # 11 nodos del workflow
-│   └── workflow.py            # Compilación y ejecución del grafo
-│
+│   ├── state.py             # ConversationState definition
+│   ├── nodes.py             # 11 workflow nodes
+│   └── workflow.py          # LangGraph compilation
 ├── services/
-│   ├── llm_service.py         # Servicio OpenAI (GPT-4o/mini)
-│   ├── tts_service.py         # Text-to-Speech con ratio proporcional
-│   ├── rag_service.py         # RAG con ChromaDB
-│   ├── config_manager.py      # Gestor de configuración dinámica
-│   ├── hubspot_sync.py        # Integración HubSpot CRM
-│   └── twilio_service.py      # Servicio WhatsApp (Twilio)
-│
-├── gradio_ui/
-│   ├── config_panel_v2.py     # Panel de configuración completo
-│   └── live_chats_panel.py    # Panel de chats en vivo
-│
-└── utils/
-    └── logging_config.py       # Configuración de logs
+│   ├── llm_service.py       # OpenAI GPT + data extraction
+│   ├── rag_service.py       # ChromaDB + RAG
+│   ├── tts_service.py       # Text-to-Speech
+│   └── hubspot_sync.py      # HubSpot CRM sync
+├── utils/
+│   ├── config_manager.py    # Configuration management
+│   └── logging_config.py    # Logging setup
+├── HUBSPOT_SETUP.md         # HubSpot integration guide
+└── test_hubspot.py          # HubSpot integration test
 ```
 
 ---
 
-## 🌐 Deployment en Render
+## 🧪 Testing
 
-### 1. Preparar Repositorio
+### Test HubSpot Integration
 
 ```bash
-# Inicializar Git (si no está inicializado)
-git init
-
-# Agregar archivos
-git add .
-
-# Commit
-git commit -m "Initial commit: WhatsApp Sales Bot MVP v1.0"
-
-# Agregar remote (reemplazar con tu URL)
-git remote add origin https://github.com/tu-usuario/whatsapp-sales-bot.git
-
-# Push
-git push -u origin main
+python test_hubspot.py
 ```
 
-### 2. Configurar Render
-
-1. Ir a [Render Dashboard](https://dashboard.render.com/)
-2. Crear nuevo **Web Service**
-3. Conectar repositorio de GitHub
-4. Configurar:
-   - **Name**: `whatsapp-sales-bot`
-   - **Environment**: Python 3
-   - **Build Command**: `pip install -r requirements.txt`
-   - **Start Command**: `python app.py` (para Gradio) o `uvicorn whatsapp_webhook:app --host 0.0.0.0 --port $PORT` (para webhook)
-   - **Instance Type**: Starter (gratis)
-
-### 3. Variables de Entorno en Render
-
-Agregar en Render Dashboard → Environment:
-
-```
-OPENAI_API_KEY=sk-...
-ENVIRONMENT=production
-TWILIO_ACCOUNT_SID=AC...
-TWILIO_AUTH_TOKEN=...
-TWILIO_WHATSAPP_NUMBER=whatsapp:+14155238886
-HUBSPOT_ACCESS_TOKEN=pat-...
-LOG_LEVEL=INFO
-```
-
-### 4. Configurar Webhook de Twilio
-
-Una vez desplegado, copiar URL de Render (ej: `https://whatsapp-sales-bot.onrender.com`)
-
-En Twilio Console:
-1. Ir a **Messaging** → **Try it out** → **WhatsApp** → **Sandbox settings**
-2. **When a message comes in**: `https://tu-app.onrender.com/webhook/whatsapp`
-3. **Method**: POST
+Verifica:
+- ✅ Creación de contactos con todos los campos
+- ✅ Actualización de contactos existentes
+- ✅ Validación de datos
+- ✅ Sincronización de notas
 
 ---
 
-## 🛠️ Scripts Útiles
+## 🔧 Configuración Avanzada
 
-### Resetear Configuración a Valores Vacíos
-```bash
-python reset_config.py
-```
+### Modelos OpenAI
 
-### Ver Base de Datos
-```bash
-# Instalar DB Browser for SQLite
-# Abrir: sales_bot.db
-```
+- **Intent Classifier**: `gpt-4o-mini` (rápido, económico)
+- **Sentiment Analyzer**: `gpt-4o-mini` (rápido, económico)
+- **Data Extraction**: `gpt-4o-mini` (structured output)
+- **Conversation**: `gpt-4o` (conversación principal)
+- **Summary**: `gpt-4o` (resúmenes finales)
 
-### Limpiar Base de Datos (Reset Completo)
-```bash
-rm sales_bot.db
-python app.py  # Se creará nueva BD automáticamente
-```
+### Text-to-Speech
 
----
+**Voces disponibles:**
+- `alloy`, `echo`, `fable`, `onyx`, `nova`, `shimmer`
 
-## 📝 Notas Importantes
+**Ratio Audio/Texto:**
+- `0-49%`: Solo texto
+- `50%`: 50% probabilidad de audio + texto
+- `51-99%`: Probabilidad proporcional
+- `100%`: Solo audio (sin texto)
 
-### Seguridad
-- ⚠️ **NUNCA** commitear `.env` con credenciales (ya está en `.gitignore`)
-- ⚠️ Rotar API keys regularmente
-- ⚠️ Usar HTTPS en producción (Render lo provee automáticamente)
+### RAG (ChromaDB)
 
-### Performance
-- **SQLite** OK para testing; considerar **PostgreSQL** para producción
-- **ChromaDB** puede ser pesado; evaluar alternativas si es necesario
-- Implementar **rate limiting** en producción
-
-### Límites de OpenAI
-- **GPT-4o**: ~128k tokens de contexto
-- **TTS**: Límites de caracteres por request
-- **Revisar costos** regularmente en OpenAI Dashboard
-
-### Diferencia Testing vs Producción
-- **Testing**: User IDs con prefijo `USRPRUEBAS_`
-- **Production**: User IDs con prefijo `USR_`
-- Controlar con variable `ENVIRONMENT` en `.env`
+- **Chunk Size**: 1000 caracteres
+- **Chunk Overlap**: 200 caracteres
+- **Embeddings**: OpenAI `text-embedding-3-small`
+- **Top K Results**: 3 documentos más relevantes
 
 ---
 
-## 🐛 Troubleshooting
+## 📝 Roadmap
 
-### Bot no responde en Gradio
-1. Verificar que `system_prompt` y `welcome_message` estén configurados
-2. Revisar logs en consola
-3. Verificar que OpenAI API key sea válida
-
-### Bot envía solo texto (no audio) con ratio 100%
-1. Verificar que `text_audio_ratio` esté en 100
-2. Revisar logs: Debe mostrar "🔊 Generating TTS audio"
-3. Verificar saldo de OpenAI (TTS consume créditos)
-
-### Error de ChromaDB en Render
-1. ChromaDB requiere dependencias del sistema
-2. Agregar `apt-packages.txt` en Render si es necesario
-3. Considerar deshabilitar RAG temporalmente
-
-### Webhook de WhatsApp no responde
-1. Verificar URL del webhook en Twilio
-2. Revisar logs de Render
-3. Probar manualmente con Postman/curl
+- [ ] Multi-tenancy (múltiples empresas)
+- [ ] Dashboard de analytics
+- [ ] A/B testing de prompts
+- [ ] Integración con más CRMs (Salesforce, Pipedrive)
+- [ ] Soporte para más idiomas
+- [ ] Voice input (Speech-to-Text)
+- [ ] Integración con calendarios (scheduling)
 
 ---
 
-## 🤝 Contribuir
+## 🤝 Contribuciones
 
-Revisar `TODO.md` para ver tareas pendientes y roadmap.
+Las contribuciones son bienvenidas! Por favor:
+
+1. Fork el repositorio
+2. Crea una rama feature (`git checkout -b feature/AmazingFeature`)
+3. Commit tus cambios (`git commit -m 'Add AmazingFeature'`)
+4. Push a la rama (`git push origin feature/AmazingFeature`)
+5. Abre un Pull Request
 
 ---
 
 ## 📄 Licencia
 
-Este proyecto es privado y confidencial.
+Este proyecto está bajo la licencia MIT. Ver archivo `LICENSE` para más detalles.
 
 ---
 
-## 📞 Soporte
+## 🙏 Agradecimientos
 
-Para preguntas o issues:
-- Revisar `TODO.md`
-- Contactar al equipo de desarrollo
+- [LangGraph](https://github.com/langchain-ai/langgraph) - Workflow orchestration
+- [OpenAI](https://openai.com/) - GPT-4o, GPT-4o-mini, TTS
+- [Gradio](https://gradio.app/) - UI framework
+- [ChromaDB](https://www.trychroma.com/) - Vector database
+- [HubSpot](https://www.hubspot.com/) - CRM integration
 
 ---
 
-**Versión**: MVP v1.0
-**Última actualización**: 2025-11-21
-**Built with**: LangGraph + OpenAI + Gradio 🚀
+**Version**: 1.1.0 - HubSpot CRM Integration
+**Last Updated**: 2025-11-21
+**Author**: Lucas Neuman
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)

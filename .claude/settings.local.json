@@ -35,7 +35,10 @@
       "Bash(powershell -Command \"Stop-Process -Id 47444 -Force\")",
       "Bash(venvScriptspython.exe reset_config.py)",
       "Bash(pip freeze:*)",
-      "Bash(requirements_full.txt)"
+      "Bash(requirements_full.txt)",
+      "Bash(git push:*)",
+      "Bash(git remote add:*)",
+      "Bash(venvScriptspython.exe test_hubspot.py)"
     ],
     "deny": [],
     "ask": []

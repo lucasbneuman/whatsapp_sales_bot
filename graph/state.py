@@ -49,3 +49,6 @@ class ConversationState(TypedDict):
 
     # Database session reference (for CRUD operations within nodes)
     db_session: Optional[Any]
+
+    # Database user object (for HubSpot sync and updates)
+    db_user: Optional[Any]

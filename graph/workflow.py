@@ -115,6 +115,7 @@ async def process_message(
     conversation_history: list,
     config: Dict[str, Any],
     db_session: Any = None,
+    db_user: Any = None,
 ) -> Dict[str, Any]:
     """
     Process a user message through the sales graph.
@@ -125,6 +126,7 @@ async def process_message(
         conversation_history: List of previous messages (BaseMessage objects)
         config: Configuration dict
         db_session: Database session for CRUD operations
+        db_user: Database User object (for HubSpot sync)
 
     Returns:
         Updated state dict with response
@@ -153,6 +155,7 @@ async def process_message(
         "current_response": None,
         "config": config,
         "db_session": db_session,
+        "db_user": db_user,  # Pass user object for HubSpot sync
     }
 
     try:

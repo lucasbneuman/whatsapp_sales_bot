@@ -248,27 +248,63 @@ async def data_collector_node(state: ConversationState) -> Dict[str, Any]:
         # Update user_name and user_email in state if found
         updates = {"collected_data": collected_data}
 
-        if "name" in extracted_data and not state.get("user_name"):
+        # Always update name and email if newly extracted (allows user to correct/update)
+        if "name" in extracted_data:
             updates["user_name"] = extracted_data["name"]
 
-        if "email" in extracted_data and not state.get("user_email"):
+        if "email" in extracted_data:
             updates["user_email"] = extracted_data["email"]
 
         # Async sync to HubSpot (non-blocking)
         hubspot_service = get_hubspot_service()
         if hubspot_service.enabled:
+            # Generate incremental notes from collected data
+            notes_parts = []
+
+            # Add collected data to notes
+            if collected_data.get("needs"):
+                notes_parts.append(f"Necesidades: {collected_data['needs']}")
+            if collected_data.get("pain_points"):
+                notes_parts.append(f"Pain Points: {collected_data['pain_points']}")
+            if collected_data.get("budget"):
+                notes_parts.append(f"Presupuesto: {collected_data['budget']}")
+
+            # Add current stage and sentiment
+            current_stage = state.get("stage", "unknown")
+            current_sentiment = state.get("sentiment", "neutral")
+            notes_parts.append(f"Etapa: {current_stage} | Sentimiento: {current_sentiment}")
+
+            # Use existing summary if available, otherwise use generated notes
+            conversation_notes = state.get("conversation_summary") or " | ".join(notes_parts)
+
             user_data = {
                 "phone": state["user_phone"],
                 "name": state.get("user_name"),
                 "email": state.get("user_email"),
+                "needs": collected_data.get("needs"),
+                "pain_points": collected_data.get("pain_points"),
+                "budget": collected_data.get("budget"),
                 "intent_score": state.get("intent_score"),
                 "sentiment": state.get("sentiment"),
                 "stage": state.get("stage"),
+                "conversation_summary": conversation_notes,
             }
             try:
-                await hubspot_service.sync_contact(user_data)
+                # Get db_user from state if available
+                db_user = state.get("db_user")
+                result = await hubspot_service.sync_contact(user_data, db_user=db_user)
+
+                # Update our DB with HubSpot contact_id and lifecyclestage
+                if result and db_user:
+                    db_user.hubspot_contact_id = result["contact_id"]
+                    db_user.hubspot_lifecyclestage = result["lifecyclestage"]
+                    db_user.hubspot_synced_at = result["synced_at"]
+                    logger.info(f"✅ Updated DB with HubSpot data: {result['action']} contact {result['contact_id']}")
+
             except Exception as e:
                 logger.error(f"HubSpot sync failed (non-blocking): {e}")
+                import traceback
+                traceback.print_exc()
 
         return updates
 
