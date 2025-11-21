@@ -89,17 +89,28 @@ PORT=7860
 
 ### 4. Ejecución
 
-#### Panel de Control Gradio (Testing)
+#### Opción 1: Solo Gradio UI (Testing/Configuración)
 ```bash
 python app.py
 ```
+- Panel de control en `http://localhost:7860`
+- Ideal para testing local y configuración
 
-Acceder a: `http://localhost:7860`
+#### Opción 2: WhatsApp + Gradio UI (Producción Completa) ⭐
+```bash
+python main.py
+```
+- **Gradio UI**: `http://localhost:7860/`
+- **WhatsApp Webhook**: `http://localhost:7860/webhook/whatsapp`
+- **Health Check**: `http://localhost:7860/health`
+- Las conversaciones de WhatsApp se ven **en tiempo real** en Gradio
+
+**Recomendado para Render/Producción**: `python main.py`
 
 **Nota**: En producción (Render, Railway, Heroku), la plataforma asigna automáticamente el `PORT`. No es necesario configurarlo manualmente.
 
-**Pestañas disponibles:**
-- 💬 **Chats**: Visualización de conversaciones en vivo
+**Pestañas Gradio disponibles:**
+- 💬 **Chats**: Visualización de conversaciones en vivo (incluye WhatsApp)
 - ⚙️ **Configuración**: Prompts, voces TTS, documentos RAG
 - 🧪 **Pruebas**: Simulador de conversaciones con datos recolectados
 
