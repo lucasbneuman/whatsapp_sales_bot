@@ -27,9 +27,13 @@ def build_enhanced_system_prompt(config: Dict[str, Any]) -> str:
         config: Configuration dictionary with system_prompt and product info
 
     Returns:
-        Enhanced system prompt string
+        Enhanced system prompt string or None if not configured
     """
-    base_prompt = config.get("system_prompt", "You are a friendly sales assistant.")
+    base_prompt = config.get("system_prompt", "").strip()
+
+    # If no base prompt, return None to signal configuration error
+    if not base_prompt:
+        return None
 
     # Get product information
     product_name = config.get("product_name", "").strip()
@@ -89,8 +93,23 @@ async def welcome_node(state: ConversationState) -> Dict[str, Any]:
     # Check if this is first message
     user_messages = [m for m in state["messages"] if isinstance(m, HumanMessage)]
     if len(user_messages) <= 1:
-        # Get custom welcome message from configuration
-        welcome_message = state["config"].get("welcome_message", "¡Hola! 👋 Soy tu asistente virtual.")
+        # Validate configuration is set
+        welcome_message = state["config"].get("welcome_message", "").strip()
+        system_prompt = state["config"].get("system_prompt", "").strip()
+
+        # If no configuration is set, return error message
+        if not welcome_message and not system_prompt:
+            error_msg = "⚠️ ERROR: El bot no está configurado. Por favor, ve a la pestaña '⚙️ Configuración' y completa al menos el 'System Prompt' y el 'Mensaje de Bienvenida' antes de iniciar conversaciones."
+            logger.warning("Bot not configured - welcome_message and system_prompt are empty")
+            return {
+                "current_response": error_msg,
+                "stage": "error",
+            }
+
+        # If only welcome_message is missing, use a default one
+        if not welcome_message:
+            welcome_message = "¡Hola! 👋 Soy tu asistente virtual."
+            logger.warning("No welcome_message configured, using fallback")
 
         # Add initial questions to start conversation
         product_name = state["config"].get("product_name", "nuestros servicios")
@@ -334,6 +353,16 @@ async def conversation_node(state: ConversationState) -> Dict[str, Any]:
 
     # Get configuration with enhanced product context
     enhanced_prompt = build_enhanced_system_prompt(state["config"])
+
+    # Check if configuration is missing
+    if enhanced_prompt is None:
+        error_msg = "⚠️ ERROR: El bot no está configurado. Por favor, ve a la pestaña '⚙️ Configuración' y completa el 'System Prompt' antes de continuar."
+        logger.warning("Bot not configured - system_prompt is empty")
+        return {
+            "current_response": error_msg,
+            "stage": "error",
+        }
+
     use_emojis = state["config"].get("use_emojis", True)
 
     # Auto-enable RAG if there are documents in the collection

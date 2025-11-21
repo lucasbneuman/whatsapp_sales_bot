@@ -47,3 +47,22 @@ chroma_db/
 *.tmp
 temp/
 nul
+
+# Documentation files (internal use only)
+CAMBIOS_REALIZADOS.md
+CODE_REVIEW_RESULTS.md
+PRE_TESTING_SUMMARY.md
+TESTING_CHECKLIST.md
+*.backup.md
+
+# Development artifacts
+requirements_full.txt
+requirements-dev.txt
+requirements-minimal.txt
+
+# Old versions
+app_old.py
+gradio_app.py
+*_v1.py
+*_old.py
+*.bak

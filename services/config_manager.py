@@ -14,9 +14,11 @@ class ConfigManager:
     """Manager for application configuration."""
 
     DEFAULT_CONFIG = {
-        "system_prompt": "Eres un asistente de ventas amigable y profesional. Tu objetivo es ayudar a los clientes a encontrar el producto adecuado y completar su compra sin problemas.\n\nIMPORTANTE: Tú SÍ recolectas información del cliente (nombre, email, teléfono, necesidades) para brindar un mejor servicio personalizado y hacer seguimiento. Cuando el cliente comparta sus datos, agradécele y confirma que los has registrado para poder ayudarlo mejor.",
-        "welcome_message": "¡Hola! 👋 Soy tu asistente virtual. ¿En qué puedo ayudarte hoy?",
-        "payment_link": "https://example.com/pay",
+        # IMPORTANTE: Estos son valores VACÍOS por defecto
+        # El bot NO debe responder hasta que se configure correctamente
+        "system_prompt": "",
+        "welcome_message": "",
+        "payment_link": "",
         "response_delay_minutes": 0.5,  # Delay en minutos
         "text_audio_ratio": 0,
         "use_emojis": True,
@@ -31,11 +33,11 @@ class ConfigManager:
         "product_price": "",
         "product_target_audience": "",
         # Prompts editables
-        "welcome_prompt": "Genera un mensaje de bienvenida cálido y breve (máximo 2-3 oraciones) para un nuevo cliente que se comunica por WhatsApp.",
-        "intent_prompt": "Analiza el siguiente mensaje de un cliente potencial y clasifica su intención.",
-        "sentiment_prompt": "Analiza el sentimiento de este mensaje del cliente.",
-        "data_extraction_prompt": "Extrae cualquier información del cliente de este mensaje.",
-        "closing_prompt": "Genera un mensaje de cierre cálido y profesional para un cliente que está listo para comprar.",
+        "welcome_prompt": "",
+        "intent_prompt": "",
+        "sentiment_prompt": "",
+        "data_extraction_prompt": "",
+        "closing_prompt": "",
     }
 
     def __init__(self):

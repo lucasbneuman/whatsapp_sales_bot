@@ -29,7 +29,13 @@
       "Bash(git commit:*)",
       "Bash(.gitignore)",
       "Bash(git reset:*)",
-      "Bash([ -f nul ])"
+      "Bash([ -f nul ])",
+      "Bash(git tag:*)",
+      "Bash(venvScriptspython.exe gradio_app_v2.py)",
+      "Bash(powershell -Command \"Stop-Process -Id 47444 -Force\")",
+      "Bash(venvScriptspython.exe reset_config.py)",
+      "Bash(pip freeze:*)",
+      "Bash(requirements_full.txt)"
     ],
     "deny": [],
     "ask": []
