@@ -111,8 +111,20 @@ demo = app_module.demo
 
 logger.info("Gradio UI loaded successfully")
 
-# Mount Gradio app to FastAPI
-app = gr.mount_gradio_app(app, demo, path="/")
+# Authentication credentials from environment
+auth_username = os.getenv("GRADIO_USERNAME")
+auth_password = os.getenv("GRADIO_PASSWORD")
+
+# Create auth tuple if credentials are provided
+auth = None
+if auth_username and auth_password:
+    auth = (auth_username, auth_password)
+    logger.info(f"[AUTH] Authentication enabled for user: {auth_username}")
+else:
+    logger.warning("[WARNING] No authentication configured! Set GRADIO_USERNAME and GRADIO_PASSWORD")
+
+# Mount Gradio app to FastAPI with authentication
+app = gr.mount_gradio_app(app, demo, path="/", auth=auth)
 
 # Note: Gradio will be available at root path "/"
 # FastAPI endpoints are still available at their paths

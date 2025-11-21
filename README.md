@@ -78,6 +78,10 @@ TWILIO_WHATSAPP_NUMBER=whatsapp:+14155238886
 # HubSpot CRM (Opcional)
 HUBSPOT_ACCESS_TOKEN=pat-na1-...
 
+# Gradio Authentication (IMPORTANTE - Cambiar en producción!)
+GRADIO_USERNAME=admin
+GRADIO_PASSWORD=your-secure-password-here
+
 # Logging
 LOG_LEVEL=INFO
 
@@ -86,6 +90,11 @@ LOG_LEVEL=INFO
 HOST=0.0.0.0
 PORT=7860
 ```
+
+**⚠️ IMPORTANTE - Seguridad:**
+- Cambia `GRADIO_USERNAME` y `GRADIO_PASSWORD` antes de deployar a producción
+- Usa una contraseña segura (mínimo 12 caracteres, mezcla de letras/números/símbolos)
+- En Render, configura estas variables en el dashboard (no subas el .env a Git)
 
 ### 4. Ejecución
 
@@ -113,6 +122,31 @@ python main.py
 - 💬 **Chats**: Visualización de conversaciones en vivo (incluye WhatsApp)
 - ⚙️ **Configuración**: Prompts, voces TTS, documentos RAG
 - 🧪 **Pruebas**: Simulador de conversaciones con datos recolectados
+
+### 🔒 Autenticación
+
+La interfaz de Gradio está protegida con autenticación básica:
+
+**Credenciales por defecto** (⚠️ CAMBIAR EN PRODUCCIÓN):
+- Usuario: `admin`
+- Contraseña: `change-this-password-in-production`
+
+**Para cambiar las credenciales:**
+
+1. **Desarrollo local**: Edita `.env`
+```env
+GRADIO_USERNAME=tu_usuario
+GRADIO_PASSWORD=tu_contraseña_segura
+```
+
+2. **Producción (Render)**: Agrega las variables en el dashboard
+   - Settings → Environment → Add Environment Variable
+   - `GRADIO_USERNAME` = tu usuario
+   - `GRADIO_PASSWORD` = tu contraseña segura
+
+**Desactivar autenticación** (solo para desarrollo local):
+- Elimina o comenta `GRADIO_USERNAME` y `GRADIO_PASSWORD` del `.env`
+- La aplicación mostrará una advertencia pero funcionará sin login
 
 ---
 

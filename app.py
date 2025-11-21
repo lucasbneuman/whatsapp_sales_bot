@@ -671,6 +671,18 @@ if __name__ == "__main__":
     host = os.getenv("HOST", "0.0.0.0")
     port = int(os.getenv("PORT", "7860"))
 
+    # Authentication credentials from environment
+    auth_username = os.getenv("GRADIO_USERNAME")
+    auth_password = os.getenv("GRADIO_PASSWORD")
+
+    # Create auth tuple if credentials are provided
+    auth = None
+    if auth_username and auth_password:
+        auth = (auth_username, auth_password)
+        print(f"\n[AUTH] Authentication enabled for user: {auth_username}")
+    else:
+        print("\n[WARNING] No authentication configured! Set GRADIO_USERNAME and GRADIO_PASSWORD in .env")
+
     print("\n" + "="*60)
     print("Starting WhatsApp Sales Bot - Gradio UI")
     print("="*60)
@@ -683,4 +695,5 @@ if __name__ == "__main__":
         server_name=host,
         server_port=port,
         share=False,
+        auth=auth,
     )
