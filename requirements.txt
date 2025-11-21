@@ -35,7 +35,7 @@ chromadb==0.5.23
 # Document Processing
 pypdf==5.5.0
 python-docx==1.1.0
-unstructured==0.17.11
+# unstructured removed - not used in code and has Python version conflicts
 
 # Scheduler
 apscheduler==3.10.4
