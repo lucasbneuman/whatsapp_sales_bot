@@ -666,14 +666,21 @@ with gr.Blocks(title="WhatsApp Sales Bot", theme=gr.themes.Soft()) as demo:
 
 
 if __name__ == "__main__":
+    # Get host and port from environment (for production platforms like Render)
+    # Render and similar platforms set PORT automatically
+    host = os.getenv("HOST", "0.0.0.0")
+    port = int(os.getenv("PORT", "7860"))
+
     print("\n" + "="*60)
     print("Starting WhatsApp Sales Bot - Gradio UI")
     print("="*60)
-    print(f"URL: http://localhost:7860")
+    print(f"Host: {host}")
+    print(f"Port: {port}")
+    print(f"URL: http://localhost:{port}")
     print("="*60 + "\n")
 
     demo.launch(
-        server_name="0.0.0.0",
-        server_port=7860,
+        server_name=host,
+        server_port=port,
         share=False,
     )

@@ -80,6 +80,11 @@ HUBSPOT_ACCESS_TOKEN=pat-na1-...
 
 # Logging
 LOG_LEVEL=INFO
+
+# Server (Opcional - solo para desarrollo local)
+# En producción (Render, Railway, Heroku), PORT se asigna automáticamente
+HOST=0.0.0.0
+PORT=7860
 ```
 
 ### 4. Ejecución
@@ -90,6 +95,8 @@ python app.py
 ```
 
 Acceder a: `http://localhost:7860`
+
+**Nota**: En producción (Render, Railway, Heroku), la plataforma asigna automáticamente el `PORT`. No es necesario configurarlo manualmente.
 
 **Pestañas disponibles:**
 - 💬 **Chats**: Visualización de conversaciones en vivo
