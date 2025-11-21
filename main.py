@@ -63,19 +63,6 @@ app = FastAPI(
 )
 
 
-@app.get("/")
-async def root():
-    """Root endpoint."""
-    return {
-        "app": "WhatsApp Sales Bot",
-        "version": "1.1.0",
-        "endpoints": {
-            "webhook": "/webhook/whatsapp",
-            "gradio_ui": "/gradio (auto-redirects)",
-        }
-    }
-
-
 @app.get("/health")
 async def health_check():
     """Health check endpoint for monitoring."""
